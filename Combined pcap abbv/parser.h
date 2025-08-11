@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <unordered_map>
 #include <functional>
 #include <sstream>
 #include <cctype>
@@ -19,67 +20,15 @@ using namespace std;
 /** Type definition for callable functions in expressions */
 using Func = function<int(vector<int>)>;
 
+/** Registered functions that can be invoked in expressions */
+unordered_map<string, Func> functionRegistry;
 
+void addFunct(string fnName, Func lambda)
+{
+  functionRegistry[fnName]=lambda;
+}
 //map<string, Func> functionRegistry;
 // Preprocess, grab protocol function calls that are valid
-
-//parse functions for protocol fn_proto #_functionName, eg fn_tcp:synFound , which calls TCP (protocol 6), layer of the stack and testd
-class TcpTest
-{
-
-};
-
-
-
-/** Registered functions that can be invoked in expressions */
-map<string, Func> functionRegistry  =
-{
-    /*
-    {
-        "fn1", [](vector<int> args)
-        {
-            return args.empty() ? 0 : args[0];
-        }
-    },
-    {
-        "fn2", [](vector<int> args)
-        {
-            return args.empty() ? 0 : args[0];
-        }
-    },
-    {
-        "fn3", [](vector<int>)
-        {
-            return 9;
-        }
-    }, */
-    {
-        "isEven", [](vector<int> args)
-        {
-            return args[0] % 2 == 0;
-        }
-    },
-    {
-        "isPositive", [](vector<int> args)
-        {
-            return args[0] > 0;
-        }
-    },
-    {
-        "alwaysTrue", [](vector<int>)
-
-        {
-            return 1;
-        }
-    },
-    {
-        "alwaysFalse", [](vector<int>)
-        {
-            return 0;
-        }
-    }
-};
-
 
 
 /** Abstract base class for all AST nodes */
@@ -121,11 +70,30 @@ public:
     FuncNode(string n, vector<int> a) : m_name(move(n)), m_args(move(a)) {}
     bool evaluate() override
     {
-        return functionRegistry[m_name](m_args) != 0;
+        auto iter=functionRegistry.find(m_name);
+        if (iter != functionRegistry.end())
+        {
+            return iter->second(m_args) != 0;
+        }
+        else
+        {
+            std::cerr << "Function " << m_name << " does not exist." << std::endl;
+            return 0;
+        }
+        //return functionRegistry[m_name](m_args) != 0;
     }
     int getValue() const
     {
-        return functionRegistry[m_name](m_args);
+        auto iter=functionRegistry.find(m_name);
+        if (iter != functionRegistry.end())
+        {
+            return iter->second(m_args);
+        }
+        else
+        {
+            std::cerr << "Function " << m_name << " does not exist." << std::endl;
+            return 0;
+        }
     }
 };
 

@@ -5,7 +5,10 @@ using namespace std;
 using namespace pcapabvparser;
 
 // ===== Main Function =====
-int main()
+
+
+
+int test1()
 {
     vector<string> testInputs =
     {
@@ -26,24 +29,12 @@ int main()
         "!(fn3() == 9)", //false
         "!(fn3() == 8)", //true
         "fn3() != fn1(9) OR fn2(3) == fn1(3)",
-        "(!fn3()) == 8",  //false
+        "(!fn3()) == 8",  //false,
+        "fn4(3,4)",
         "(((fn3())) == 8)" //false
     };
 
-    //example on adding function registerys (should be via object funct call
-    pcapabvparser::functionRegistry["fn1"] = [](vector<int> args)
-    {
-        return args.empty() ? 0 : args[0];
-    };
-    pcapabvparser::functionRegistry["fn2"] = [](vector<int> args)
-    {
-        return args.empty() ? 0 : args[0];
-    };
 
-    pcapabvparser::functionRegistry["fn3"]= [](vector<int>)
-    {
-        return 9;
-    };
 
 
     for (const auto& input : testInputs)
@@ -53,6 +44,49 @@ int main()
         {
             auto tokens = tokenize(input);
             Parser parser(tokens);
+
+            //example on adding function registerys (should be via object funct call
+            pcapabvparser::addFunct("fn1", [](vector<int> args)
+            {
+                return args.empty() ? 0 : args[0];
+            });
+
+            pcapabvparser::addFunct("fn2", [](vector<int> args)
+            {
+                return args.empty() ? 0 : args[0];
+            });
+
+            pcapabvparser::addFunct("fn3", [](vector<int>)
+            {
+                return 9;
+            });
+            pcapabvparser::addFunct("fn4", [](vector<int> args)
+            {
+                return args.empty() ? 0 : args [0] < args[1];
+            });
+
+            pcapabvparser::addFunct("isEven", [](vector<int> args)
+            {
+                return args[0] % 2 == 0;
+            });
+
+            pcapabvparser::addFunct("isPositive", [](vector<int> args)
+            {
+                return args[0] > 0;
+            });
+
+
+            pcapabvparser::addFunct("alwaysTrue", [](vector<int>)
+            {
+                return 1;
+            });
+
+
+            pcapabvparser::functionRegistry["alwaysFalse"]= [](vector<int>)
+            {
+                return 0;
+            };
+
             AST ast = parser.parse();
             AST ast2 = ast; // make a copy
             bool result = ast->evaluate();
@@ -69,3 +103,7 @@ int main()
     return 0;
 }
 
+int main() {
+test1();
+return 0;
+}
