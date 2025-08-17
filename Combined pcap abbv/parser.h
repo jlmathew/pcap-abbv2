@@ -19,25 +19,39 @@ using namespace std;
 
 /** Type definition for callable functions in expressions */
 using Func = function<int(vector<int>)>;
+using FuncMap = unordered_map<string, Func>;
+
+class Parser;
 
 /** Registered functions that can be invoked in expressions */
-unordered_map<string, Func> functionRegistry;
+//unordered_map<string, Func> functionRegistry;
+//std::vector<std::string> functionNameCache;
 
-void addFunct(string fnName, Func lambda)
+/*void addFunct(string fnName, Func lambda)
 {
-  functionRegistry[fnName]=lambda;
-}
+  m_functionRegistry[fnName]=lambda;
+}*/
 //map<string, Func> functionRegistry;
 // Preprocess, grab protocol function calls that are valid
 
 
-/** Abstract base class for all AST nodes */
+/**  base class for all AST nodes */
 class ASTNode
 {
 public:
     /** Evaluate the node and return boolean result */
     virtual bool evaluate() = 0;
+    ASTNode() {}
+    ASTNode(FuncMap functionUsed) : m_functionMap(functionUsed) {}
     virtual ~ASTNode() = default;
+protected:
+//friend class Parser;
+    FuncMap m_functionMap;
+public:
+    void insertParser(FuncMap functlist)
+    {
+        m_functionMap=functlist;
+    }
 
 };
 
@@ -66,12 +80,20 @@ class FuncNode : public ASTNode
 {
     string m_name;
     vector<int> m_args;
+
 public:
-    FuncNode(string n, vector<int> a) : m_name(move(n)), m_args(move(a)) {}
+    FuncNode(string n, vector<int> a) : m_name(move(n)), m_args(move(a))
+    {
+
+    }
+    FuncNode(string n, vector<int> a, FuncMap functions) : ASTNode(functions), m_name(move(n)), m_args(move(a)) { }
+
     bool evaluate() override
     {
-        auto iter=functionRegistry.find(m_name);
-        if (iter != functionRegistry.end())
+        //auto functReg = m_originalParser->getFunctionRegistry();
+        //auto iter= m_functionRegistery.find(m_name);
+        auto iter = ASTNode::m_functionMap.find(m_name);
+        if (iter != m_functionMap.end())
         {
             return iter->second(m_args) != 0;
         }
@@ -84,8 +106,8 @@ public:
     }
     int getValue() const
     {
-        auto iter=functionRegistry.find(m_name);
-        if (iter != functionRegistry.end())
+        auto iter = m_functionMap.find(m_name);
+        if (iter != m_functionMap.end())
         {
             return iter->second(m_args);
         }
@@ -323,10 +345,27 @@ vector<Token> tokenize(const string& input)
 // ===== Parser =====
 class Parser
 {
+//protected:
+//friend class AST;
+
+private:
+
     const vector<Token>& m_tokens;
     size_t m_pos = 0;
+    unordered_map<string, Func> m_functionRegistry;
+    std::vector<std::string> m_functionNameCache;
+
+
 
 public:
+    void addFunct(string fnName, Func lambda)
+    {
+        m_functionRegistry[fnName]=lambda;
+    }
+    auto getFunctionRegistry() const
+    {
+        return &m_functionRegistry;
+    }
     Token peek() const
     {
         return m_tokens[m_pos];
@@ -367,7 +406,10 @@ public:
                 }
             }
         }
-        return make_shared<FuncNode>(name, args);
+        //std::cout << "function name is (" << name << ")\n";
+        //m_functionNameCache.push_back(name);
+        return make_shared<FuncNode>(name, args, m_functionRegistry);
+
     }
 
     /**

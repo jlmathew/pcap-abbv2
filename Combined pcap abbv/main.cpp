@@ -39,59 +39,60 @@ int test1()
 
     for (const auto& input : testInputs)
     {
-        cout << "Input: " << input << endl;
+        //cout << "Input: " << input << endl;
         try
         {
             auto tokens = tokenize(input);
             Parser parser(tokens);
 
+
             //example on adding function registerys (should be via object funct call
-            pcapabvparser::addFunct("fn1", [](vector<int> args)
+            parser.addFunct("fn1", [](vector<int> args)
             {
                 return args.empty() ? 0 : args[0];
             });
 
-            pcapabvparser::addFunct("fn2", [](vector<int> args)
+            parser.addFunct("fn2", [](vector<int> args)
             {
                 return args.empty() ? 0 : args[0];
             });
 
-            pcapabvparser::addFunct("fn3", [](vector<int>)
+            parser.addFunct("fn3", [](vector<int>)
             {
                 return 9;
             });
-            pcapabvparser::addFunct("fn4", [](vector<int> args)
+            parser.addFunct("fn4", [](vector<int> args)
             {
                 return args.empty() ? 0 : args [0] < args[1];
             });
 
-            pcapabvparser::addFunct("isEven", [](vector<int> args)
+            parser.addFunct("isEven", [](vector<int> args)
             {
                 return args[0] % 2 == 0;
             });
 
-            pcapabvparser::addFunct("isPositive", [](vector<int> args)
+            parser.addFunct("isPositive", [](vector<int> args)
             {
                 return args[0] > 0;
             });
 
 
-            pcapabvparser::addFunct("alwaysTrue", [](vector<int>)
+            parser.addFunct("alwaysTrue", [](vector<int>)
             {
                 return 1;
             });
 
 
-            pcapabvparser::functionRegistry["alwaysFalse"]= [](vector<int>)
+            parser.addFunct("alwaysFalse",  [](vector<int>)
             {
                 return 0;
-            };
+            });
 
-            AST ast = parser.parse();
+           AST ast = parser.parse();
             AST ast2 = ast; // make a copy
             bool result = ast->evaluate();
-            cout << "Result : " << boolalpha << result << endl;
-            cout << "Result2: " << std::boolalpha << ast2->evaluate() << endl;
+            cout << "Result " << input << ": " << boolalpha << result << endl;
+            //cout << "Result2: " << std::boolalpha << ast2->evaluate() << endl;
         }
         catch (const exception& e)
         {

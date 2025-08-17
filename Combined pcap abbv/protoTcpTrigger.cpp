@@ -88,7 +88,13 @@ m_functEval.emplace("SYNONLY_CNT",
                 return sum + *helper;
             }
         );
-m_functEval.emplace("TcpHandshake",
+m_functEval.emplace("Handshake",
+            [helper = this->m_packetLayerHelper](std::vector<int> params) -> int {
+                // Example logic using captured helper
+return 0;
+            }
+        );
+        m_functEval.emplace("RST_CNT",
             [helper = this->m_packetLayerHelper](std::vector<int> params) -> int {
                 // Example logic using captured helper
 return 0;
