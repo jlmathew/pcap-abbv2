@@ -88,7 +88,7 @@ int test1()
                 return 0;
             });
 
-           AST ast = parser.parse();
+            AST ast = parser.parse();
             AST ast2 = ast; // make a copy
             bool result = ast->evaluate();
             cout << "Result " << input << ": " << boolalpha << result << endl;
@@ -104,7 +104,94 @@ int test1()
     return 0;
 }
 
-int main() {
-test1();
-return 0;
+int timer(const AST ast) {
+    // Start timer
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Call the function
+    for(int i=0; i<1000000; i++)
+    {  AST ast2 = ast->clone();
+    }
+
+    // Stop timer
+    auto end = std::chrono::high_resolution_clock::now();
+
+    // Calculate duration
+    std::chrono::duration<double, std::milli> duration = end - start;
+
+    std::cout << "doWork() took " << duration.count() << " ms" << std::endl;
+}
+
+void test2()
+{
+    vector<string> testInputs =
+    {
+        "(!TCP.SYNONLY_CNT() ==2 AND TCP.Handshake()) OR TCP.RST_CNT() > 0 OR IP.WindowSizeCnt()==0 OR TCP.IllegalFlagCnt() > 0"                             // true
+
+    };
+    //test 3 packets
+    for (const auto& input : testInputs)
+    {
+        //cout << "Input: " << input << endl;
+        try
+        {
+            auto tokens = tokenize(input);
+            Parser parser(tokens);
+            //loop for each new packet sources
+            //for (const auto& name : parser.m_functionNameCache ) {
+//std::cout << "functions: " << name << std::endl;
+//}
+            //now link to to packet evaluator for each stream
+
+            //parse with packet links
+            AST ast = parser.parse();
+//
+            for (const auto& name : parser.m_functionNameCache )
+            {
+                //for (const auto& name : parser.m_functionRegistry ) {
+                std::cout << "show functions: " << name << std::endl;
+            }
+
+//            timer(ast);
+
+            AST ast2 = ast->clone();
+
+            std::cout << "ast addr " << ast << ", ast2 addr " << ast2 << std::endl;
+
+//test if ast only changes
+            ast2->addFunct("TCP.SYNONLY_CNT", [](vector<int>)
+            {
+                return 2;
+            });
+            ast2->addFunct("TCP.Handshake", [](vector<int>)
+            {
+                return 0;
+            });
+            //evaluate different packets
+            bool result = ast->evaluate();
+
+            //test functions
+
+
+            //test
+            bool result2 = ast2->evaluate();
+            cout << "Result " << input << ": " << boolalpha << result << endl;
+            cout << "Result " << input << ": " << boolalpha << result2 << endl;
+        }
+        catch (const exception& e)
+        {
+            cerr << "Tokenize Error: " << e.what() << endl;
+        }
+        cout << "-----------------------------" << endl;
+
+    }
+}
+
+
+
+int main()
+{
+    test1();
+    test2();
+    return 0;
 }

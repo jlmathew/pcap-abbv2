@@ -1,6 +1,7 @@
 #ifndef __pcap_abbv_parser_h__
 #define __pcap_abbv_parser_h__
 
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -24,16 +25,6 @@ using FuncMap = unordered_map<string, Func>;
 class Parser;
 
 /** Registered functions that can be invoked in expressions */
-//unordered_map<string, Func> functionRegistry;
-//std::vector<std::string> functionNameCache;
-
-/*void addFunct(string fnName, Func lambda)
-{
-  m_functionRegistry[fnName]=lambda;
-}*/
-//map<string, Func> functionRegistry;
-// Preprocess, grab protocol function calls that are valid
-
 
 /**  base class for all AST nodes */
 class ASTNode
@@ -42,12 +33,27 @@ public:
     /** Evaluate the node and return boolean result */
     virtual bool evaluate() = 0;
     ASTNode() {}
+    ASTNode(const ASTNode& other) : m_functionMap(other.m_functionMap)  {}
     ASTNode(FuncMap functionUsed) : m_functionMap(functionUsed) {}
+    //ASTNode(const ASTNode &node) { insertParser(node.getFunctionMap())}
     virtual ~ASTNode() = default;
+    // Pure virtual clone methodm_functionMap
+    virtual std::shared_ptr<ASTNode> clone() const = 0;
 protected:
 //friend class Parser;
+
     FuncMap m_functionMap;
+
 public:
+    void addFunct(string fnName, Func lambda)
+    {
+        m_functionMap[fnName]=lambda;
+    }
+    auto getFunctionMap() const
+    {
+        return &m_functionMap;
+    }
+
     void insertParser(FuncMap functlist)
     {
         m_functionMap=functlist;
@@ -65,6 +71,11 @@ class ValueNode : public ASTNode
 
 public:
     explicit ValueNode(int v) : m_value(v) {}
+        ValueNode(const ValueNode& other) : ASTNode(other), m_value(other.m_value)  {}
+    AST clone() const override {
+        return std::make_shared<ValueNode>(*this);
+    }
+
     bool evaluate() override
     {
         return m_value != 0;
@@ -86,12 +97,14 @@ public:
     {
 
     }
-    FuncNode(string n, vector<int> a, FuncMap functions) : ASTNode(functions), m_name(move(n)), m_args(move(a)) { }
-
+    FuncNode(string n, vector<int> a, FuncMap functions) : ASTNode(functions), m_name((n)), m_args((a)) { }
+    // FuncNode(string n, vector<int> a, FuncMap functions) : ASTNode(functions), m_name(move(n)), m_args(move(a)) { }
+    FuncNode(const FuncNode& other) : ASTNode(other),m_name(other.m_name),m_args(other.m_args)  {}
+    AST clone() const override {
+        return std::make_shared<FuncNode>(*this);
+    }
     bool evaluate() override
     {
-        //auto functReg = m_originalParser->getFunctionRegistry();
-        //auto iter= m_functionRegistery.find(m_name);
         auto iter = ASTNode::m_functionMap.find(m_name);
         if (iter != m_functionMap.end())
         {
@@ -102,7 +115,6 @@ public:
             std::cerr << "Function " << m_name << " does not exist." << std::endl;
             return 0;
         }
-        //return functionRegistry[m_name](m_args) != 0;
     }
     int getValue() const
     {
@@ -124,7 +136,11 @@ class NotNode : public ASTNode
 {
     AST m_child;
 public:
-    explicit NotNode(AST c) : m_child(move(c)) {}
+    explicit NotNode(AST c) : m_child((c)) {}
+    NotNode(const NotNode& other) : ASTNode(other), m_child(other.m_child)  {}
+        AST clone() const override {
+        return std::make_shared<NotNode>(*this);
+    }
     bool evaluate() override
     {
         return !m_child->evaluate();
@@ -136,7 +152,11 @@ class AndNode : public ASTNode
 {
     AST m_left, m_right;
 public:
-    AndNode(AST l, AST r) : m_left(move(l)), m_right(move(r)) {}
+    AndNode(AST l, AST r) : m_left((l)), m_right((r)) {}
+    AndNode(const AndNode& other) : ASTNode(other), m_left(other.m_left), m_right(other.m_right)  {}
+        AST clone() const override {
+        return std::make_shared<AndNode>(*this);
+    }
     bool evaluate() override
     {
         return m_left->evaluate() && m_right->evaluate();
@@ -148,7 +168,12 @@ class OrNode : public ASTNode
 {
     AST m_left, m_right;
 public:
-    OrNode(AST l, AST r) : m_left(move(l)), m_right(move(r)) {}
+    OrNode(AST l, AST r) : m_left((l)), m_right((r)) {}
+        OrNode(const OrNode& other) : ASTNode(other), m_left(other.m_left), m_right(other.m_right)  {}
+
+        AST clone() const override {
+        return std::make_shared<OrNode>(*this);
+    }
     bool evaluate() override
     {
         return m_left->evaluate() || m_right->evaluate();
@@ -169,8 +194,12 @@ private:
 public:
 
     ComparisonNode(AST l, Operator o, AST r)
-        : m_left(move(l)), m_op(o), m_right(move(r)) {}
+        : m_left((l)), m_op(o), m_right((r)) {}
+            ComparisonNode(const ComparisonNode& other) : ASTNode(other), m_left(other.m_left), m_op(other.m_op), m_right(other.m_right)  {}
 
+    AST clone() const override {
+        return std::make_shared<ComparisonNode>(*this);
+    }
     bool evaluate() override
     {
         auto getVal = [](const AST& node) -> int
@@ -293,11 +322,11 @@ vector<Token> tokenize(const string& input)
             m_tokens.push_back({TOKEN_NUM, input.substr(i, j - i)});
             i = j;
         }
-        else if (isalpha(input[i]) || input[i] == '_')
+        else if (isalpha(input[i]) || input[i] == '_' || input[i] == '.')
         {
             // Read identifier
             size_t j = i;
-            while (j < input.size() && (isalnum(input[j]) || input[j] == '_')) ++j;
+            while (j < input.size() && (isalnum(input[j]) || input[j] == '_' || input[j] == '.')) ++j;
             string name = input.substr(i, j - i);
 
             // Check for function call
@@ -352,7 +381,9 @@ private:
 
     const vector<Token>& m_tokens;
     size_t m_pos = 0;
+public:
     unordered_map<string, Func> m_functionRegistry;
+
     std::vector<std::string> m_functionNameCache;
 
 
@@ -385,14 +416,15 @@ public:
         }
         return node;
     }
-    //AST parseComparison();
-    //AST parsePrimary();
+
 
     AST parseFunc(const string& ftext)
     {
         size_t lparen = ftext.find('(');
         string name = ftext.substr(0, lparen);
+        m_functionNameCache.push_back(name);
         string argsText = ftext.substr(lparen + 1, ftext.size() - lparen - 2);
+
         vector<int> args;
         stringstream ss(argsText);
         string val;
@@ -406,8 +438,7 @@ public:
                 }
             }
         }
-        //std::cout << "function name is (" << name << ")\n";
-        //m_functionNameCache.push_back(name);
+
         return make_shared<FuncNode>(name, args, m_functionRegistry);
 
     }
@@ -476,6 +507,12 @@ public:
 
 public:
     explicit Parser(const vector<Token>& t) : m_tokens(t) {}
+    /*    Parser(Parser &lhs_parser) {
+            m_tokens = lhs_parser.m_tokens;
+        m_pos = lhs_parser.m_pos;
+        m_functionRegistry = lhs_parser.m_functionRegistry;
+
+    } */
     AST parse()
     {
         AST result = parseExpr();
