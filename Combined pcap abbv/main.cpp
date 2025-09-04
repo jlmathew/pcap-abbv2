@@ -126,7 +126,7 @@ void test2()
 {
     vector<string> testInputs =
     {
-        "(!TCP.SYNONLY_CNT() ==2 AND TCP.Handshake()) OR TCP.RST_CNT() > 0 OR IP.WindowSizeCnt()==0 OR TCP.IllegalFlagCnt() > 0"                             // true
+        "(!TCP.SYNONLY_CNT() ==2 AND TCP.Handshake()) OR TCP.RST_CNT() > 0 OR IPv4.WindowSizeCnt()==0 OR TCP.IllegalFlagCnt() > 0"                             // true
 
     };
     //test 3 packets
