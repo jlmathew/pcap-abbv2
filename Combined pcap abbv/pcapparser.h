@@ -15,12 +15,12 @@
 
 namespace pcapabvparser
 {
-using namespace std;
+//using namespace std;
 
 
 /** Type definition for callable functions in expressions */
-using Func = function<int(vector<int>)>;
-using FuncMap = unordered_map<string, Func>;
+using Func = std::function<int(std::vector<int>)>;
+using FuncMap = std::unordered_map<std::string, Func>;
 
 class Parser;
 
@@ -40,14 +40,15 @@ public:
     // Pure virtual clone methodm_functionMap
     virtual std::shared_ptr<ASTNode> clone() const = 0;
 protected:
-//friend class Parser;
+
 
     FuncMap m_functionMap;
 
 public:
-    void addFunct(string fnName, Func lambda)
+    void addFunct(std::string fnName, Func lambda)
     {
         m_functionMap[fnName]=lambda;
+
     }
     auto getFunctionMap() const
     {
@@ -57,11 +58,12 @@ public:
     void insertParser(FuncMap functlist)
     {
         m_functionMap=functlist;
+
     }
 
 };
 
-using AST = shared_ptr<ASTNode>;
+using AST = std::shared_ptr<ASTNode>;
 
 /** Represents a numeric constant value */
 class ValueNode : public ASTNode
@@ -71,8 +73,9 @@ class ValueNode : public ASTNode
 
 public:
     explicit ValueNode(int v) : m_value(v) {}
-        ValueNode(const ValueNode& other) : ASTNode(other), m_value(other.m_value)  {}
-    AST clone() const override {
+    ValueNode(const ValueNode& other) : ASTNode(other), m_value(other.m_value)  {}
+    AST clone() const override
+    {
         return std::make_shared<ValueNode>(*this);
     }
 
@@ -89,18 +92,21 @@ public:
 /** Represents a function call */
 class FuncNode : public ASTNode
 {
-    string m_name;
-    vector<int> m_args;
+    std::string m_name;
+    std::vector<int> m_args;
 
 public:
-    FuncNode(string n, vector<int> a) : m_name(move(n)), m_args(move(a))
+    FuncNode(std::string n, std::vector<int> a) : m_name(move(n)), m_args(move(a))
     {
 
     }
-    FuncNode(string n, vector<int> a, FuncMap functions) : ASTNode(functions), m_name((n)), m_args((a)) { }
+    FuncNode(std::string n, std::vector<int> a, FuncMap functions) : ASTNode(functions), m_name((n)), m_args((a)) {
+    std::cout << "size of FuncMap is " << functions.size() << std::endl;
+    }
     // FuncNode(string n, vector<int> a, FuncMap functions) : ASTNode(functions), m_name(move(n)), m_args(move(a)) { }
     FuncNode(const FuncNode& other) : ASTNode(other),m_name(other.m_name),m_args(other.m_args)  {}
-    AST clone() const override {
+    AST clone() const override
+    {
         return std::make_shared<FuncNode>(*this);
     }
     bool evaluate() override
@@ -138,7 +144,8 @@ class NotNode : public ASTNode
 public:
     explicit NotNode(AST c) : m_child((c)) {}
     NotNode(const NotNode& other) : ASTNode(other), m_child(other.m_child)  {}
-        AST clone() const override {
+    AST clone() const override
+    {
         return std::make_shared<NotNode>(*this);
     }
     bool evaluate() override
@@ -154,7 +161,8 @@ class AndNode : public ASTNode
 public:
     AndNode(AST l, AST r) : m_left((l)), m_right((r)) {}
     AndNode(const AndNode& other) : ASTNode(other), m_left(other.m_left), m_right(other.m_right)  {}
-        AST clone() const override {
+    AST clone() const override
+    {
         return std::make_shared<AndNode>(*this);
     }
     bool evaluate() override
@@ -169,9 +177,10 @@ class OrNode : public ASTNode
     AST m_left, m_right;
 public:
     OrNode(AST l, AST r) : m_left((l)), m_right((r)) {}
-        OrNode(const OrNode& other) : ASTNode(other), m_left(other.m_left), m_right(other.m_right)  {}
+    OrNode(const OrNode& other) : ASTNode(other), m_left(other.m_left), m_right(other.m_right)  {}
 
-        AST clone() const override {
+    AST clone() const override
+    {
         return std::make_shared<OrNode>(*this);
     }
     bool evaluate() override
@@ -195,17 +204,18 @@ public:
 
     ComparisonNode(AST l, Operator o, AST r)
         : m_left((l)), m_op(o), m_right((r)) {}
-            ComparisonNode(const ComparisonNode& other) : ASTNode(other), m_left(other.m_left), m_op(other.m_op), m_right(other.m_right)  {}
+    ComparisonNode(const ComparisonNode& other) : ASTNode(other), m_left(other.m_left), m_op(other.m_op), m_right(other.m_right)  {}
 
-    AST clone() const override {
+    AST clone() const override
+    {
         return std::make_shared<ComparisonNode>(*this);
     }
     bool evaluate() override
     {
         auto getVal = [](const AST& node) -> int
         {
-            if (auto val = dynamic_pointer_cast<ValueNode>(node)) return val->getValue();
-            if (auto fn = dynamic_pointer_cast<FuncNode>(node)) return fn->getValue();
+            if (auto val = std::dynamic_pointer_cast<ValueNode>(node)) return val->getValue();
+            if (auto fn = std::dynamic_pointer_cast<FuncNode>(node)) return fn->getValue();
             // NEW: also allow wrapped logical expressions to resolve to bool -> int
             return node->evaluate() ? 1 : 0;
             //throw runtime_error("Invalid comparison operand"); Unsure if we wish to compare boolean (true/false) to ints (true=1, false=0)
@@ -246,7 +256,7 @@ enum TokenType
 struct Token
 {
     TokenType type;
-    string value;
+    std::string value;
 };
 
 /**
@@ -254,9 +264,9 @@ struct Token
  * @param input The string expression
  * @return Vector of tokens
  */
-vector<Token> tokenize(const string& input)
+std::vector<Token> tokenize(const std::string& input)
 {
-    vector<Token> m_tokens;
+    std::vector<Token> m_tokens;
     size_t i = 0;
 
     while (i < input.size())
@@ -327,7 +337,7 @@ vector<Token> tokenize(const string& input)
             // Read identifier
             size_t j = i;
             while (j < input.size() && (isalnum(input[j]) || input[j] == '_' || input[j] == '.')) ++j;
-            string name = input.substr(i, j - i);
+            std::string name = input.substr(i, j - i);
 
             // Check for function call
             size_t k = j;
@@ -349,20 +359,20 @@ vector<Token> tokenize(const string& input)
                 }
                 else
                 {
-                    throw runtime_error("Unclosed function call parentheses at position " + to_string(i));
+                    throw std::runtime_error("Unclosed function call parentheses at position " + std::to_string(i));
                 }
             }
 
             // Not a function call, treat as keyword
             if (name == "AND") m_tokens.push_back({TOKEN_AND, name});
             else if (name == "OR") m_tokens.push_back({TOKEN_OR, name});
-            else throw runtime_error("Unexpected identifier: " + name);
+            else throw std::runtime_error("Unexpected identifier: " + name);
 
             i = j;
         }
         else
         {
-            throw runtime_error("Unknown character: " + string(1, input[i]));
+            throw std::runtime_error("Unknown character: " + std::string(1, input[i]));
         }
     }
 
@@ -379,23 +389,32 @@ class Parser
 
 private:
 
-    const vector<Token>& m_tokens;
+    const std::vector<Token>& m_tokens;
     size_t m_pos = 0;
 public:
-    unordered_map<string, Func> m_functionRegistry;
+    std::unordered_map<std::string, Func> m_functionRegistry;
 
     std::vector<std::string> m_functionNameCache;
 
 
 
 public:
-    void addFunct(string fnName, Func lambda)
+    void addFunct(std::string fnName, Func lambda)
     {
         m_functionRegistry[fnName]=lambda;
+        m_functionNameCache.push_back(fnName);
     }
     auto getFunctionRegistry() const
     {
         return &m_functionRegistry;
+    }
+    auto getFunctionNames() const
+    {
+        return &m_functionNameCache;
+    }
+        auto getFunctionNames2() const
+    {
+        return std::vector<std::string>(m_functionNameCache);
     }
     Token peek() const
     {
@@ -412,22 +431,22 @@ public:
         while (peek().type == TOKEN_OR)
         {
             advance();
-            node = make_shared<OrNode>(node, parseFactor());
+            node = std::make_shared<OrNode>(node, parseFactor());
         }
         return node;
     }
 
 
-    AST parseFunc(const string& ftext)
+    AST parseFunc(const std::string& ftext)
     {
         size_t lparen = ftext.find('(');
-        string name = ftext.substr(0, lparen);
+        std::string name = ftext.substr(0, lparen);
         m_functionNameCache.push_back(name);
-        string argsText = ftext.substr(lparen + 1, ftext.size() - lparen - 2);
+        std::string argsText = ftext.substr(lparen + 1, ftext.size() - lparen - 2);
 
-        vector<int> args;
-        stringstream ss(argsText);
-        string val;
+        std::vector<int> args;
+        std::stringstream ss(argsText);
+        std::string val;
         while (getline(ss, val, ','))
         {
             if (!val.empty() )
@@ -439,7 +458,7 @@ public:
             }
         }
 
-        return make_shared<FuncNode>(name, args, m_functionRegistry);
+        return std::make_shared<FuncNode>(name, args, m_functionRegistry);
 
     }
 
@@ -453,7 +472,7 @@ public:
         while (peek().type == TOKEN_AND)
         {
             advance();
-            node = make_shared<AndNode>(node, parseComparison());
+            node = std::make_shared<AndNode>(node, parseComparison());
         }
         return node;
     }
@@ -476,7 +495,7 @@ public:
             else if (t.type == TOKEN_LT) op = Op::LT;
             else if (t.type == TOKEN_GTE) op = Op::GTE;
             else if (t.type == TOKEN_LTE) op = Op::LTE;
-            return make_shared<ComparisonNode>(left, op, right);
+            return std::make_shared<ComparisonNode>(left, op, right);
         }
         return left;
     }
@@ -485,12 +504,12 @@ public:
         Token t = advance();
         if (t.type == TOKEN_NOT)
         {
-            return make_shared<NotNode>(parsePrimary());
+            return std::make_shared<NotNode>(parsePrimary());
         }
         else if (t.type == TOKEN_LPAREN)
         {
             AST expr = parseExpr();
-            if (peek().type != TOKEN_RPAREN) throw runtime_error("Expected ')'");
+            if (peek().type != TOKEN_RPAREN) throw std::runtime_error("Expected ')'");
             advance(); // consume ')'
             return expr;
         }
@@ -500,13 +519,13 @@ public:
         }
         else if (t.type == TOKEN_NUM)
         {
-            return make_shared<ValueNode>(stoi(t.value));
+            return std::make_shared<ValueNode>(stoi(t.value));
         }
-        throw runtime_error("Unexpected token: " + t.value);
+        throw std::runtime_error("Unexpected token: " + t.value);
     }
 
 public:
-    explicit Parser(const vector<Token>& t) : m_tokens(t) {}
+    explicit Parser(const std::vector<Token>& t) : m_tokens(t) {}
     /*    Parser(Parser &lhs_parser) {
             m_tokens = lhs_parser.m_tokens;
         m_pos = lhs_parser.m_pos;
@@ -518,7 +537,7 @@ public:
         AST result = parseExpr();
         if (peek().type != TOKEN_END)
         {
-            throw runtime_error("Unexpected token after end of expression");
+            throw std::runtime_error("Unexpected token after end of expression");
         }
         return result;
     }

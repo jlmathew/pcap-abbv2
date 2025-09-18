@@ -1,7 +1,9 @@
 #include <iostream>
-#include "parser.h"
+#include "pcapparser.h"
+#include "pcap_abbv_cli_parser.h"
 
-using namespace std;
+
+//using namespace std;
 using namespace pcapabvparser;
 
 // ===== Main Function =====
@@ -10,11 +12,12 @@ using namespace pcapabvparser;
 
 int test1()
 {
-    vector<string> testInputs =
+    std::vector<std::string> testInputs =
     {
         "isEven(4)",                             // true
         "isEven(5)",                             // false
         "!isPositive(-3)",                       // true
+        "isPositive(5)",                         // true
         "alwaysTrue() AND alwaysFalse()",        // false
         "alwaysTrue() OR alwaysFalse()",         // true
         "(fn1(5) == 5) AND (fn2(3) < 10)",        // true
@@ -44,73 +47,85 @@ int test1()
         {
             auto tokens = tokenize(input);
             Parser parser(tokens);
-
+            auto fnNameList2 = parser.getFunctionNames();
+            //loop for each new packet sources
+            /*for (const_iterator cit=fnNameList2.begin(); cit!=fnNameList2.end();cit++ )
+            {
+                std::cout << "parser functions: " << name << std::endl;
+            }*/
 
             //example on adding function registerys (should be via object funct call
-            parser.addFunct("fn1", [](vector<int> args)
+            parser.addFunct("fn1", [](std::vector<int> args)
             {
                 return args.empty() ? 0 : args[0];
             });
 
-            parser.addFunct("fn2", [](vector<int> args)
+            parser.addFunct("fn2", [](std::vector<int> args)
             {
                 return args.empty() ? 0 : args[0];
             });
 
-            parser.addFunct("fn3", [](vector<int>)
+            parser.addFunct("fn3", [](std::vector<int>)
             {
                 return 9;
             });
-            parser.addFunct("fn4", [](vector<int> args)
+            parser.addFunct("fn4", [](std::vector<int> args)
             {
                 return args.empty() ? 0 : args [0] < args[1];
             });
 
-            parser.addFunct("isEven", [](vector<int> args)
+            parser.addFunct("isEven", [](std::vector<int> args)
             {
                 return args[0] % 2 == 0;
             });
 
-            parser.addFunct("isPositive", [](vector<int> args)
+            parser.addFunct("isPositive", [](std::vector<int> args)
             {
                 return args[0] > 0;
             });
 
 
-            parser.addFunct("alwaysTrue", [](vector<int>)
+            parser.addFunct("alwaysTrue", [](std::vector<int>)
             {
                 return 1;
             });
 
 
-            parser.addFunct("alwaysFalse",  [](vector<int>)
+            parser.addFunct("alwaysFalse",  [](std::vector<int>)
             {
                 return 0;
             });
 
             AST ast = parser.parse();
-            AST ast2 = ast; // make a copy
+            AST ast2 = ast->clone(); // make a copy
+            ast2->addFunct("isPositive", [](std::vector<int> args)
+            {
+                return args[0] < 1;
+            });
+
             bool result = ast->evaluate();
-            cout << "Result " << input << ": " << boolalpha << result << endl;
-            //cout << "Result2: " << std::boolalpha << ast2->evaluate() << endl;
+            std::cout << "Result " << input << ": " << std::boolalpha << result << std::endl;
+            std::cout << "Result2: " << input << ": " << std::boolalpha << ast2->evaluate() << std::endl;
         }
-        catch (const exception& e)
+        catch (const std::exception& e)
         {
-            cerr << "Tokenize Error: " << e.what() << endl;
+            std::cerr << "Tokenize Error: " << e.what() << std::endl;
         }
-        cout << "-----------------------------" << endl;
+        std::cout << "-----------------------------" << std::endl;
     }
 
     return 0;
 }
 
-int timer(const AST ast) {
+void timer(const AST ast)
+{
     // Start timer
     auto start = std::chrono::high_resolution_clock::now();
 
     // Call the function
     for(int i=0; i<1000000; i++)
-    {  AST ast2 = ast->clone();
+    {
+        AST ast2 = ast->clone();
     }
 
     // Stop timer
@@ -124,7 +139,7 @@ int timer(const AST ast) {
 
 void test2()
 {
-    vector<string> testInputs =
+    std::vector<std::string> testInputs =
     {
         "(!TCP.SYNONLY_CNT() ==2 AND TCP.Handshake()) OR TCP.RST_CNT() > 0 OR IPv4.WindowSizeCnt()==0 OR TCP.IllegalFlagCnt() > 0"                             // true
 
@@ -137,33 +152,38 @@ void test2()
         {
             auto tokens = tokenize(input);
             Parser parser(tokens);
+            auto fnNameList2 = parser.getFunctionNames();
             //loop for each new packet sources
-            //for (const auto& name : parser.m_functionNameCache ) {
-//std::cout << "functions: " << name << std::endl;
-//}
+ /*           for (const auto& name : fnNameList2 )
+            {
+                std::cout << "functions: " << name << std::endl;
+            }*/
             //now link to to packet evaluator for each stream
 
             //parse with packet links
             AST ast = parser.parse();
-//
-            for (const auto& name : parser.m_functionNameCache )
+            auto fnNameList = parser.getFunctionNames();
+              auto fnNameList3 = ast->getFunctionMap();
+            auto fnNameList4 = parser.getFunctionNames2();
+            for (const auto& name : fnNameList4 )
             {
-                //for (const auto& name : parser.m_functionRegistry ) {
-                std::cout << "show functions: " << name << std::endl;
+                std::cout << "functions3: " << name << std::endl;
             }
 
-//            timer(ast);
+
+
+            timer(ast);
 
             AST ast2 = ast->clone();
 
             std::cout << "ast addr " << ast << ", ast2 addr " << ast2 << std::endl;
 
 //test if ast only changes
-            ast2->addFunct("TCP.SYNONLY_CNT", [](vector<int>)
+            ast2->addFunct("TCP.SYNONLY_CNT", [](std::vector<int>)
             {
                 return 2;
             });
-            ast2->addFunct("TCP.Handshake", [](vector<int>)
+            ast2->addFunct("TCP.Handshake", [](std::vector<int>)
             {
                 return 0;
             });
@@ -175,23 +195,47 @@ void test2()
 
             //test
             bool result2 = ast2->evaluate();
-            cout << "Result " << input << ": " << boolalpha << result << endl;
-            cout << "Result " << input << ": " << boolalpha << result2 << endl;
+
+            std::cout << "Result " << input << ": " << std::boolalpha << result << std::endl;
+            std::cout << "Result " << input << ": " << std::boolalpha << result2 << std::endl;
         }
-        catch (const exception& e)
+        catch (const std::exception& e)
         {
-            cerr << "Tokenize Error: " << e.what() << endl;
+            std::cerr << "Tokenize Error: " << e.what() << std::endl;
         }
-        cout << "-----------------------------" << endl;
+        std::cout << "-----------------------------" << std::endl;
 
     }
 }
 
 
 
-int main()
+int main(int argc, char *argv[])
 {
     test1();
     test2();
+
+    //string parse options
+    pcapabvparser::globalOptions gOptions;
+    pcapabvparser::cli_parser parseCliOptions(argc, argv);
+
+    //parse global options
+
+    //parse protocol options
+
+    //get 'packet of interest' and 'packet stream to save' filters
+
+    //create threads (based upon global options) to handle packets
+    //create signal capture in each thread, if killed or cntrl-c, each thread flushes
+
+    //loop for packet captures
+
+    //create key for packet
+    //optimize for int, not string (too long)
+
+    //create new 'packetstream',otherwise hash packetstream into a thread
+    //queue packet into fifo per thread
+
+
     return 0;
 }
