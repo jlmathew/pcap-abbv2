@@ -21,7 +21,7 @@ namespace pcapabvparser
 static std::string version="0.5 alpha";
 
 static struct globalOptions_t {
-    globalOptions_t() : bufferSizePerTotalFlush(30000000), bufferPacketsBefore(10), bufferPacketsAfter(7), bufferSizePerStreamFlush(30000), combinePacketsIntoPcap(false), streamSummary(true), printHelp(false) {}
+    globalOptions_t() : bufferSizePerTotalFlush(30000000), bufferPacketsBefore(10), bufferPacketsAfter(7), bufferSizePerStreamFlush(30000), combinePacketsIntoPcap(false), streamSummary(true) {} //, printHelp(false) {}
     //deep copy not needed, just shallow copy, so use default
     ~globalOptions_t()=default;
     globalOptions_t(const globalOptions_t &)=default;
@@ -33,21 +33,22 @@ static struct globalOptions_t {
     uint32_t bufferSizePerStreamFlush;
     bool combinePacketsIntoPcap;
     bool streamSummary;
-        bool printHelp;
+    //bool printHelp;
     std::string preName; //pre name for saved pcaps
     std::string pcapPacketOfInterestFilter;
     std::string pcapPacketTriggerToSaveFilter;
     std::string protocolTimeoutConfigFileName;
     void printOptions() {
-       std::cout << "globalOptions:" << "(bufferSizePerTotalFlush):" << bufferSizePerTotalFlush << ", (bufferPacketsBefore):" << bufferPacketsBefore << ",(bufferPacketsAfter):" << bufferPacketsAfter <<
+       std::cout << "Current Global Options:\n" << "(bufferSizePerTotalFlush):" << bufferSizePerTotalFlush << ", (bufferPacketsBefore):" << bufferPacketsBefore << ",(bufferPacketsAfter):" << bufferPacketsAfter <<
        ",(bufferSizePerStreamFlush):" << bufferSizePerStreamFlush << ",(combinePacketsIntoPcap):" << (combinePacketsIntoPcap ? "true" : "false") << ",(streamSummary)" << (streamSummary ? "true" : "false") <<
        ",(preName):" << streamSummary << ",(pcapPacketOfInterestFilter):" << pcapPacketOfInterestFilter << ",(pcapPacketTriggerToSaveFilter):" << pcapPacketTriggerToSaveFilter << ",(protocolTimeoutConfigFileName):" <<
        protocolTimeoutConfigFileName << std::endl;
     }
 } globalOptions;
 
+static void printHelp();
 
-static const std::vector<std::tuple<std::string,std::string,std::string,std::function<void(const char*)> > > helpStrings  = {
+    static const std::vector<std::tuple<std::string,std::string,std::string,std::function<void(const char*)> > > helpStrings  = {
   {"--bufferflushsize", "-f","maximum total storage bytes for all streams before flushing", [](const char* arg) { globalOptions.bufferSizePerTotalFlush = std::stoull(arg);} },
   {"--bufferpacketsizebefore", "-b","number of packets to save before a packet of interest", [](const char* arg) { globalOptions.bufferPacketsBefore = std::stoul(arg);}},
   {"--bufferpacketsizeafter","-a","number of packets to save, after a packet of interest", [](const char* arg) { globalOptions.bufferPacketsAfter = std::stoul(arg);}},
@@ -58,9 +59,15 @@ static const std::vector<std::tuple<std::string,std::string,std::string,std::fun
   {"--tagPacketFilter","-t","pcap abbv filter to match/tag packets of interest", [](const char* arg) { globalOptions.pcapPacketOfInterestFilter = arg;}},
   {"--protoTimeoutConfig","-c","file name for protocol timeout config file", [](const char* arg) { globalOptions.protocolTimeoutConfigFileName = arg;}}, //Need to call parsing fuction
   {"--savePacketFilter","-p","pcap abbv filter to match for saving packet streams", [](const char* arg) { globalOptions.pcapPacketTriggerToSaveFilter = arg;}},
-  {"--help","-h","print out help ", [](const char* ) { globalOptions.printHelp=true;}},
-  {"--version","-v","version",[](const char *) { std::cout << version << std::endl; }}
+  {"--help","-h","print out help ", [](const char* ) { printHelp();
+    globalOptions.printOptions();}},
+  {"--version","-v","version",[](const char *) { std::cout << "Version:"<< version << std::endl; }}
 };
+
+static void printHelp() { for(auto line : helpStrings)
+    {
+    std::cout << std::get<0>(line) << "\t" << std::get<1> (line) << " : " << std::get<2>(line) << std::endl;
+    } };
 
 class cli_parser
 {
@@ -88,6 +95,9 @@ class cli_parser
     std::string m_pcapFilter;
     std::string m_tagFilter;
     std::string m_saveFilter;
+
+
+
 };
 }
 #endif // PCAP_ABBV_CLI_PARSER_H

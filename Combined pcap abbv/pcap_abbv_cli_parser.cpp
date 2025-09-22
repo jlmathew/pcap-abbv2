@@ -59,17 +59,11 @@ void cli_parser::inputRawOptions(int argc, char*argv[])
             {
                 std::cerr << "Unknown parameter: " << arg << std::endl;
             }
-//            std::cout << " [" << value << "],";
-            //m_clioptions[arg] = value;
+
         }
-        if (globalOptions.printHelp)
-        {
-            printHelp();
-        }
+
 
     }
-    //parse into actual options
-
 
 }
 
