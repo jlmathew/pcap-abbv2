@@ -100,8 +100,9 @@ public:
     {
 
     }
-    FuncNode(std::string n, std::vector<int> a, FuncMap functions) : ASTNode(functions), m_name((n)), m_args((a)) {
-    std::cout << "size of FuncMap is " << functions.size() << std::endl;
+    FuncNode(std::string n, std::vector<int> a, FuncMap functions) : ASTNode(functions), m_name((n)), m_args((a))
+    {
+        std::cout << "size of FuncMap is " << functions.size() << std::endl;
     }
     // FuncNode(string n, vector<int> a, FuncMap functions) : ASTNode(functions), m_name(move(n)), m_args(move(a)) { }
     FuncNode(const FuncNode& other) : ASTNode(other),m_name(other.m_name),m_args(other.m_args)  {}
@@ -391,10 +392,10 @@ private:
 
     const std::vector<Token>& m_tokens;
     size_t m_pos = 0;
-public:
+//public:
     std::unordered_map<std::string, Func> m_functionRegistry;
 
-    std::vector<std::string> m_functionNameCache;
+     std::vector<std::string> m_functionNameCache;
 
 
 
@@ -412,9 +413,9 @@ public:
     {
         return &m_functionNameCache;
     }
-        auto getFunctionNames2() const
+    auto getFunctionNames2() const
     {
-        return std::vector<std::string>(m_functionNameCache);
+        return  std::vector<std::string>(m_functionNameCache);
     }
     Token peek() const
     {

@@ -12,23 +12,55 @@
 #include <cctype>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 
 namespace pcapabvparser
 {
 //using namespace std;
 
-struct globalOptions {
+static std::string version="0.5 alpha";
+
+static struct globalOptions_t {
+    globalOptions_t() : bufferSizePerTotalFlush(30000000), bufferPacketsBefore(10), bufferPacketsAfter(7), bufferSizePerStreamFlush(30000), combinePacketsIntoPcap(false), streamSummary(true), printHelp(false) {}
+    //deep copy not needed, just shallow copy, so use default
+    ~globalOptions_t()=default;
+    globalOptions_t(const globalOptions_t &)=default;
+    globalOptions_t& operator=(const globalOptions_t &) = default;
+
     uint64_t bufferSizePerTotalFlush;
     uint32_t bufferPacketsBefore;
     uint32_t bufferPacketsAfter;
     uint32_t bufferSizePerStreamFlush;
     bool combinePacketsIntoPcap;
+    bool streamSummary;
+        bool printHelp;
     std::string preName; //pre name for saved pcaps
-    std::string protocolTimeoutConfigFileName;
     std::string pcapPacketOfInterestFilter;
     std::string pcapPacketTriggerToSaveFilter;
-};
+    std::string protocolTimeoutConfigFileName;
+    void printOptions() {
+       std::cout << "globalOptions:" << "(bufferSizePerTotalFlush):" << bufferSizePerTotalFlush << ", (bufferPacketsBefore):" << bufferPacketsBefore << ",(bufferPacketsAfter):" << bufferPacketsAfter <<
+       ",(bufferSizePerStreamFlush):" << bufferSizePerStreamFlush << ",(combinePacketsIntoPcap):" << (combinePacketsIntoPcap ? "true" : "false") << ",(streamSummary)" << (streamSummary ? "true" : "false") <<
+       ",(preName):" << streamSummary << ",(pcapPacketOfInterestFilter):" << pcapPacketOfInterestFilter << ",(pcapPacketTriggerToSaveFilter):" << pcapPacketTriggerToSaveFilter << ",(protocolTimeoutConfigFileName):" <<
+       protocolTimeoutConfigFileName << std::endl;
+    }
+} globalOptions;
 
+
+static const std::vector<std::tuple<std::string,std::string,std::string,std::function<void(const char*)> > > helpStrings  = {
+  {"--bufferflushsize", "-f","maximum total storage bytes for all streams before flushing", [](const char* arg) { globalOptions.bufferSizePerTotalFlush = std::stoull(arg);} },
+  {"--bufferpacketsizebefore", "-b","number of packets to save before a packet of interest", [](const char* arg) { globalOptions.bufferPacketsBefore = std::stoul(arg);}},
+  {"--bufferpacketsizeafter","-a","number of packets to save, after a packet of interest", [](const char* arg) { globalOptions.bufferPacketsAfter = std::stoul(arg);}},
+  {"--bufferstreamflushsize","-l","maximum total storage bytes per stream before flushing", [](const char* arg) { globalOptions.bufferSizePerStreamFlush = std::stoul(arg);}},
+  {"--singlepcap","-g","boolean value to combine all individual parsed streams into a single pcap", [](const char* arg) { globalOptions.combinePacketsIntoPcap = (arg=="true" ? true: false);;}},
+  {"--streamsummary","-s","boolean ", [](const char* arg) { globalOptions.streamSummary = (arg=="true" ? true: false);}},
+  {"--prename","-n","packet prepend name", [](const char* arg) { globalOptions.preName = arg; } },
+  {"--tagPacketFilter","-t","pcap abbv filter to match/tag packets of interest", [](const char* arg) { globalOptions.pcapPacketOfInterestFilter = arg;}},
+  {"--protoTimeoutConfig","-c","file name for protocol timeout config file", [](const char* arg) { globalOptions.protocolTimeoutConfigFileName = arg;}}, //Need to call parsing fuction
+  {"--savePacketFilter","-p","pcap abbv filter to match for saving packet streams", [](const char* arg) { globalOptions.pcapPacketTriggerToSaveFilter = arg;}},
+  {"--help","-h","print out help ", [](const char* ) { globalOptions.printHelp=true;}},
+  {"--version","-v","version",[](const char *) { std::cout << version << std::endl; }}
+};
 
 class cli_parser
 {
@@ -37,16 +69,25 @@ class cli_parser
         cli_parser(int argc, char * options[]);
         virtual ~cli_parser();
         void inputRawOptions(int argc, char*options[]);
-        globalOptions & getGlobalOptions();
-        //regular pcap filter for packet filtering
-        std::string & getPcapFilter();
-        //pcap abbv filter for tagging packets of interest
-        std::string & getPcapAbvTagFilter();
-        //pcap abbv filter for saving packet streams of interest
-        std::string & getPcapAbvSaveFilter();
-    protected:
 
+        //regular pcap filter for packet filtering
+        std::string  getPcapFilter();
+        //pcap abbv filter for tagging packets of interest
+        std::string  getTagFilter();
+        //pcap abbv filter for saving packet streams of interest
+        std::string  getSaveFilter();
+        //protocol timeout configuration file
+        std::string getProtoTimeoutConfigFile();
+        //print out help
+        void printHelp();
+
+    protected:
+       void setProtoTimeoutConfigFile();
     private:
+    std::unordered_map<std::string, std::function<void(const char*)> > m_clioptions;
+    std::string m_pcapFilter;
+    std::string m_tagFilter;
+    std::string m_saveFilter;
 };
 }
 #endif // PCAP_ABBV_CLI_PARSER_H

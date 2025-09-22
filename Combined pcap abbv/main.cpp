@@ -216,10 +216,8 @@ int main(int argc, char *argv[])
     test2();
 
     //string parse options
-    pcapabvparser::globalOptions gOptions;
     pcapabvparser::cli_parser parseCliOptions(argc, argv);
-
-    //parse global options
+    //parseCliOptions.parseGlobalOptions();
 
     //parse protocol options
 
