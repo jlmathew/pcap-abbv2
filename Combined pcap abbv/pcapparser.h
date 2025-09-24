@@ -15,8 +15,6 @@
 
 namespace pcapabvparser
 {
-//using namespace std;
-
 
 /** Type definition for callable functions in expressions */
 using Func = std::function<int(std::vector<int>)>;
@@ -32,33 +30,31 @@ class ASTNode
 public:
     /** Evaluate the node and return boolean result */
     virtual bool evaluate() = 0;
-    ASTNode() {}
+    ASTNode() { std::cout << "creating ast at address " << this << std::endl; }
     ASTNode(const ASTNode& other) : m_functionMap(other.m_functionMap)  {}
     ASTNode(FuncMap functionUsed) : m_functionMap(functionUsed) {}
     //ASTNode(const ASTNode &node) { insertParser(node.getFunctionMap())}
     virtual ~ASTNode() = default;
     // Pure virtual clone methodm_functionMap
     virtual std::shared_ptr<ASTNode> clone() const = 0;
-protected:
-
-
+//protected:
     FuncMap m_functionMap;
 
 public:
     void addFunct(std::string fnName, Func lambda)
     {
+    std::cout << "adding function " << fnName << " at address " << this << std::endl;
         m_functionMap[fnName]=lambda;
 
     }
     auto getFunctionMap() const
     {
-        return &m_functionMap;
+        return m_functionMap;
     }
 
     void insertParser(FuncMap functlist)
     {
         m_functionMap=functlist;
-
     }
 
 };
@@ -102,7 +98,12 @@ public:
     }
     FuncNode(std::string n, std::vector<int> a, FuncMap functions) : ASTNode(functions), m_name((n)), m_args((a))
     {
-        std::cout << "size of FuncMap is " << functions.size() << std::endl;
+std::cout << "FuncNode FuncMap:";
+for(auto name : functions)
+{
+   std::cout << name.first << " ";
+}
+std::cout << std::endl;
     }
     // FuncNode(string n, vector<int> a, FuncMap functions) : ASTNode(functions), m_name(move(n)), m_args(move(a)) { }
     FuncNode(const FuncNode& other) : ASTNode(other),m_name(other.m_name),m_args(other.m_args)  {}
@@ -113,6 +114,7 @@ public:
     bool evaluate() override
     {
         auto iter = ASTNode::m_functionMap.find(m_name);
+        std::cout << "eval function(" << m_name << ")=" << iter->second(m_args) << std::endl;
         if (iter != m_functionMap.end())
         {
             return iter->second(m_args) != 0;
@@ -126,6 +128,7 @@ public:
     int getValue() const
     {
         auto iter = m_functionMap.find(m_name);
+        std::cout << "getval function(" << m_name << ")=" << iter->second(m_args) << std::endl;
         if (iter != m_functionMap.end())
         {
             return iter->second(m_args);
@@ -385,37 +388,32 @@ std::vector<Token> tokenize(const std::string& input)
 // ===== Parser =====
 class Parser
 {
-//protected:
-//friend class AST;
 
 private:
 
     const std::vector<Token>& m_tokens;
     size_t m_pos = 0;
-//public:
     std::unordered_map<std::string, Func> m_functionRegistry;
 
-     std::vector<std::string> m_functionNameCache;
-
-
-
 public:
+
     void addFunct(std::string fnName, Func lambda)
     {
         m_functionRegistry[fnName]=lambda;
-        m_functionNameCache.push_back(fnName);
     }
     auto getFunctionRegistry() const
     {
         return &m_functionRegistry;
     }
+
     auto getFunctionNames() const
     {
-        return &m_functionNameCache;
-    }
-    auto getFunctionNames2() const
-    {
-        return  std::vector<std::string>(m_functionNameCache);
+
+        std::vector<std::string> functionNameCache;
+        for(const auto &functionToken : m_tokens) {
+           if (functionToken.type==TOKEN_FUNC) { functionNameCache.push_back(functionToken.value);}
+        }
+        return functionNameCache;
     }
     Token peek() const
     {
@@ -442,7 +440,6 @@ public:
     {
         size_t lparen = ftext.find('(');
         std::string name = ftext.substr(0, lparen);
-        m_functionNameCache.push_back(name);
         std::string argsText = ftext.substr(lparen + 1, ftext.size() - lparen - 2);
 
         std::vector<int> args;

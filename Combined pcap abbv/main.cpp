@@ -46,12 +46,18 @@ int test1()
         try
         {
             auto tokens = tokenize(input);
+            /*for (const auto& name : tokens )
+            {
+                if (name.type==TOKEN_FUNC) {
+                std::cout << "TOkens(" << int(name.type) << "): " << name.value << std::endl; }
+            }*/
+
             Parser parser(tokens);
             auto fnNameList2 = parser.getFunctionNames();
             //loop for each new packet sources
-            /*for (const_iterator cit=fnNameList2.begin(); cit!=fnNameList2.end();cit++ )
+            /*for (auto cit=fnNameList2.begin(); cit!=fnNameList2.end(); cit++ )
             {
-                std::cout << "parser functions: " << name << std::endl;
+                std::cout << "parser functions: " << *cit << std::endl;
             }*/
 
             //example on adding function registerys (should be via object funct call
@@ -141,63 +147,111 @@ void test2()
 {
     std::vector<std::string> testInputs =
     {
-        "(!TCP.SYNONLY_CNT() ==2 AND TCP.Handshake()) OR TCP.RST_CNT() > 0 OR IPv4.WindowSizeCnt()==0 OR TCP.IllegalFlagCnt() > 0"                             // true
-
+        //"(!TCP.SYNONLY_CNT() ==2 AND TCP.Handshake()) OR TCP.RST_CNT() > 0 OR IPv4.WindowSizeCnt()==0 OR TCP.IllegalFlagCnt() > 0",                             // true
+        "TCP.SYNONLY_CNT() == 2" ,
     };
     //test 3 packets
     for (const auto& input : testInputs)
     {
-        //cout << "Input: " << input << endl;
         try
         {
             auto tokens = tokenize(input);
+            /*for (const auto& name : tokens )
+            {
+                if (TOKEN_FUNC==name.type ) {
+                std::cout << "TOkens(" << int(name.type) << "): " << name.value << std::endl;
+                }
+            }*/
+
             Parser parser(tokens);
             auto fnNameList2 = parser.getFunctionNames();
             //loop for each new packet sources
- /*           for (const auto& name : fnNameList2 )
+            /*for ( auto& name : fnNameList2 )
             {
-                std::cout << "functions: " << name << std::endl;
+                std::cout << "functions2: " << name << std::endl;
             }*/
             //now link to to packet evaluator for each stream
 
-            //parse with packet links
-            AST ast = parser.parse();
-            auto fnNameList = parser.getFunctionNames();
-              auto fnNameList3 = ast->getFunctionMap();
-            auto fnNameList4 = parser.getFunctionNames2();
-            for (const auto& name : fnNameList4 )
+
+            /*for (const auto& name : fnNameList4 )
             {
                 std::cout << "functions3: " << name << std::endl;
-            }
+            }*/
 
 
 
-            timer(ast);
+            //timer(ast);
 
-            AST ast2 = ast->clone();
 
-            std::cout << "ast addr " << ast << ", ast2 addr " << ast2 << std::endl;
-
-//test if ast only changes
-            ast2->addFunct("TCP.SYNONLY_CNT", [](std::vector<int>)
+            parser.addFunct("TCP.SYNONLY_CNT", [](std::vector<int>)
             {
-                return 2;
+                std::cout << "parser original synonly" << std::endl; return 2;
             });
-            ast2->addFunct("TCP.Handshake", [](std::vector<int>)
+ /*           parser.addFunct("TCP.Handshake", [](std::vector<int>)
+            {
+                return 1;
+            });
+            parser.addFunct("TCP.RST_CNT", [](std::vector<int>)
+            {
+                return 1;
+            });
+            parser.addFunct("IPv4.WindowSizeCnt", [](std::vector<int>)
             {
                 return 0;
             });
+            parser.addFunct("TCP.IllegalFlagCnt", [](std::vector<int>)
+            {
+                return 1;
+            });
+*/
+
+std::cout << "pre-parser" << std::endl;
+            //parse with packet links
+            AST ast = parser.parse();
+            //auto fnNameList = parser.getFunctionNames();
+            //auto fnNameList3 = ast->getFunctionMap();
+            //auto fnNameList4 = parser.getFunctionNames();
+
             //evaluate different packets
+std::cout << "pre-evaluate" << std::endl;
             bool result = ast->evaluate();
-
+            std::cout << "post-evaluate" << std::endl;
             //test functions
+//AST ast2 = ast->clone();
 
+            //std::cout << "ast addr " << ast << ", ast2 addr " << ast2 << std::endl;
 
-            //test
+//test if ast only changes
+            /*parser.addFunct("TCP.SYNONLY_CNT", [](std::vector<int>)
+            {
+                std::cout << "parser update synonly" << std::endl;return 0;
+            });*/
+
+            parser.addFunct("TCP.SYNONLY_CNT", [](std::vector<int>)
+            {
+                std::cout << "mod  synonly" << std::endl; return 1;
+            });
+            ast->addFunct("TCP.SYNONLY_CNT", [](std::vector<int>)
+            {
+                std::cout << "ast update synonly" << std::endl;return 0;
+            });
+
+            /*ast2->addFunct("TCP.SYNONLY_CNT", [](std::vector<int>)
+            {
+                std::cout << "ast2 update synonly" << std::endl;return 0;
+            });*/
+
+            //bool result2 = ast2->evaluate();
+
+            std::cout << "Result1 " << input << ": " << std::boolalpha << result << " address: " << ast <<std::endl;
+            //std::cout << "Result2 " << input << ": " << std::boolalpha << result2 << std::endl;
+            bool result3 = ast->evaluate();
+            std::cout << "Result3 " << input << ": " << std::boolalpha << result3 << " address: " << ast << std::endl;
+
+            AST ast2 = parser.parse();
             bool result2 = ast2->evaluate();
+            std::cout << "Result2 " << input << ": " << std::boolalpha << result2 << " address: " << ast2 << std::endl;
 
-            std::cout << "Result " << input << ": " << std::boolalpha << result << std::endl;
-            std::cout << "Result " << input << ": " << std::boolalpha << result2 << std::endl;
         }
         catch (const std::exception& e)
         {
@@ -212,14 +266,29 @@ void test2()
 
 int main(int argc, char *argv[])
 {
-    test1();
+ //   test1();
     test2();
 
     //string parse options
     pcapabvparser::cli_parser parseCliOptions(argc, argv);
-    //parseCliOptions.parseGlobalOptions();
+
 
     //parse protocol options
+    std::cout << "tag filter:" << parseCliOptions.getTagFilter() << std::endl;
+    auto tokens = tokenize(parseCliOptions.getTagFilter());
+    /*for (const auto& name : tokens )
+    { if (TOKEN_FUNC==name.type) {
+        std::cout << "TOkens(" << int(name.type) << "): " << name.value << std::endl; }
+    }*/
+
+    Parser parser(tokens);
+    auto fnNameList2 = parser.getFunctionNames();
+    //loop for each new packet sources
+    for (const auto &name : fnNameList2 )
+    {
+        std::cout << "functions2: " << name << std::endl;
+    }
+
 
     //get 'packet of interest' and 'packet stream to save' filters
 

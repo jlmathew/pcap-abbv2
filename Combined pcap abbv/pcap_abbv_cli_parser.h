@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <cstring>
 
 namespace pcapabvparser
 {
@@ -53,15 +54,15 @@ static void printHelp();
   {"--bufferpacketsizebefore", "-b","number of packets to save before a packet of interest", [](const char* arg) { globalOptions.bufferPacketsBefore = std::stoul(arg);}},
   {"--bufferpacketsizeafter","-a","number of packets to save, after a packet of interest", [](const char* arg) { globalOptions.bufferPacketsAfter = std::stoul(arg);}},
   {"--bufferstreamflushsize","-l","maximum total storage bytes per stream before flushing", [](const char* arg) { globalOptions.bufferSizePerStreamFlush = std::stoul(arg);}},
-  {"--singlepcap","-g","boolean value to combine all individual parsed streams into a single pcap", [](const char* arg) { globalOptions.combinePacketsIntoPcap = (arg=="true" ? true: false);;}},
-  {"--streamsummary","-s","boolean ", [](const char* arg) { globalOptions.streamSummary = (arg=="true" ? true: false);}},
+  {"--singlepcap","-g","boolean value to combine all individual parsed streams into a single pcap", [](const char* arg) { globalOptions.combinePacketsIntoPcap = (strncmp(arg,"true",4) ? false: true);}},
+  {"--streamsummary","-s","boolean ", [](const char* arg) { globalOptions.streamSummary = (strncmp(arg,"true",4) ? false: true);}},
   {"--prename","-n","packet prepend name", [](const char* arg) { globalOptions.preName = arg; } },
   {"--tagPacketFilter","-t","pcap abbv filter to match/tag packets of interest", [](const char* arg) { globalOptions.pcapPacketOfInterestFilter = arg;}},
   {"--protoTimeoutConfig","-c","file name for protocol timeout config file", [](const char* arg) { globalOptions.protocolTimeoutConfigFileName = arg;}}, //Need to call parsing fuction
   {"--savePacketFilter","-p","pcap abbv filter to match for saving packet streams", [](const char* arg) { globalOptions.pcapPacketTriggerToSaveFilter = arg;}},
   {"--help","-h","print out help ", [](const char* ) { printHelp();
-    globalOptions.printOptions();}},
-  {"--version","-v","version",[](const char *) { std::cout << "Version:"<< version << std::endl; }}
+    globalOptions.printOptions(); exit (0); }},
+  {"--version","-v","version",[](const char *) { std::cout << "Version:"<< version << std::endl; exit (0); }}
 };
 
 static void printHelp() { for(auto line : helpStrings)
@@ -92,9 +93,9 @@ class cli_parser
        void setProtoTimeoutConfigFile();
     private:
     std::unordered_map<std::string, std::function<void(const char*)> > m_clioptions;
-    std::string m_pcapFilter;
-    std::string m_tagFilter;
-    std::string m_saveFilter;
+ //   std::string m_pcapFilter;
+//    std::string m_tagFilter;
+ //   std::string m_saveFilter;
 
 
 

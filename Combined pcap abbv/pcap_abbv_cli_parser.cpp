@@ -30,8 +30,6 @@ void cli_parser::inputRawOptions(int argc, char*argv[])
     {
         std::string arg = argv[i];
 
-//        std::cout << "\noption:" << arg;
-
         // Check if it's an option (starts with -- or -)
         if (arg.rfind("--", 0) == 0 || arg.rfind("-", 0) == 0)
         {
@@ -51,8 +49,6 @@ void cli_parser::inputRawOptions(int argc, char*argv[])
             if (it != m_clioptions.end() )
             {
                 it->second(value.c_str());
-                std::cout << "(debug) " << arg << "=" << value <<std::endl;
-                //help?
 
             }
             else
@@ -94,12 +90,13 @@ void cli_parser::setProtoTimeoutConfigFile()
 }
 
 //print help
-void cli_parser::printHelp()
+/*void cli_parser::printHelp()
 {
     std::cout << "Pcap Abbreviation CLI options:" <<  std::endl;
     for (const auto cliLine : helpStrings)
     {
         std::cout << "  "  << std::get<0>(cliLine) << " " << std::get<1>(cliLine) << " " << std::get<2>(cliLine) << std::endl;
     }
-}
+    exit(0);
+} */
 }  //end of namespace
