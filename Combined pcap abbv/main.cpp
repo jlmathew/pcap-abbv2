@@ -1,7 +1,7 @@
 #include <iostream>
 #include "pcapparser.h"
 #include "pcap_abbv_cli_parser.h"
-
+#include <chrono>
 
 //using namespace std;
 //using namespace pcapabvparser;
@@ -38,15 +38,15 @@ int test1()
     };
 
 
-using namespace pcapabvparser;
+    using namespace pcapabvparser;
 
     for (const auto& input : testInputs)
     {
         //cout << "Input: " << input << endl;
         try
         {
-               pcapabvparser::FnParser parser(input);
-    pcapabvparser::ASTPtr tree = parser.parse();
+            pcapabvparser::FnParser parser(input);
+            pcapabvparser::ASTPtr tree = parser.parse();
 
             //example on adding function registerys (should be via object funct call
             pcapabvparser::registerUserFunction("fn1", [](std::vector<int> args)
@@ -75,6 +75,8 @@ using namespace pcapabvparser;
 
             pcapabvparser::registerUserFunction("isPositive", [](std::vector<int> args)
             {
+
+                std::cout << args[0] << " should be positive\n";
                 return args[0] > 0;
             });
 
@@ -91,9 +93,9 @@ using namespace pcapabvparser;
             });
 
 
-        std::cout << "-----------------------------" << std::endl;
+            std::cout << "-----------------------------" << std::endl;
 
-       std::cout << "Result (" << input << "): " << tree->eval() << std::endl; //true
+            std::cout << "Result (" << input << "): " << tree->eval() << std::endl; //true
 
         }
         catch (const std::exception& e)
@@ -101,7 +103,7 @@ using namespace pcapabvparser;
             std::cerr << "Tokenize Error: " << e.what() << std::endl;
         }
 
-}
+    }
     return 0;
 }
 
