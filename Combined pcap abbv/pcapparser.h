@@ -9,6 +9,7 @@
 
 namespace pcapabvparser {
 
+
 // Token types
 enum class TokenType { IDENT, NUMBER, OP, LPAREN, RPAREN, COMMA, END };
 
@@ -35,7 +36,11 @@ struct ASTNode {
     virtual ~ASTNode() = default;
 };
 
+
+
 using ASTPtr = std::unique_ptr<ASTNode>;
+
+void getFnNames(const ASTNode* node, std::vector<std::string>& names);
 
 // Function call node
 struct FuncCallNode : ASTNode {

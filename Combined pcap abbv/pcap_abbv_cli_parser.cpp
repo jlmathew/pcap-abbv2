@@ -66,25 +66,25 @@ void cli_parser::inputRawOptions(int argc, char*argv[])
 
 
 //regular pcap filter for packet filtering
-std::string  cli_parser::getPcapFilter()
+const std::string & cli_parser::getPcapFilter() const
 {
     return globalOptions.pcapPacketTriggerToSaveFilter;
 }
 
 //pcap abbv filter for tagging packets of interest
-std::string  cli_parser::getTagFilter()
+const std::string & cli_parser::getTagFilter() const
 {
     return globalOptions.pcapPacketOfInterestFilter;
 }
 
 //pcap abbv filter for saving packet streams of interest
-std::string  cli_parser::getSaveFilter()
+const std::string & cli_parser::getSaveFilter() const
 {
-
+  return "";
 }
 
 
-void cli_parser::setProtoTimeoutConfigFile()
+void cli_parser::setProtoTimeoutConfigFile() const
 {
 //globalOptions.protocolTimeoutConfigFileName
 }
