@@ -14,6 +14,7 @@
 #include <string>
 #include <cstring>
 #include <iostream>
+#include <memory>
 
 namespace pcapabvparser {
 
@@ -37,7 +38,12 @@ struct PacketOffsets_t
     std::string tls_sni;
 };
 
-std::vector<uint8_t> parse_packet(const uint8_t * packet, const pcap_pkthdr* header, PacketOffsets_t& offsets);
+//std::vector<uint8_t> parse_packet(const uint8_t * packet, const pcap_pkthdr* header, PacketOffsets_t& offsets);
+std::unique_ptr<std::vector<uint8_t>> parse_packet(
+     std::unique_ptr<uint8_t[]>& packet,
+     std::unique_ptr<pcap_pkthdr>& header,
+     std::unique_ptr<PacketOffsets_t>& offsets);
 
+void print_key(std::unique_ptr<std::vector<uint8_t>> key);
 } //end namespace
 #endif // __PCAPKEY_H__

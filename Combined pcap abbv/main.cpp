@@ -273,10 +273,17 @@ int main(int argc, char *argv[])
             // Timeout elapsed
             continue;
 
+            //get copies for smart pointers
+            // Copy header and packet data into unique_ptrs
+        auto headerCopy = std::make_unique<pcap_pkthdr>(*pktHeader);
+
+        auto packetCopy = std::unique_ptr<uint8_t[]>(new uint8_t[pktHeader->caplen]);
+        std::memcpy(packetCopy.get(), packetData, pktHeader->caplen);
 
 
-        PacketOffsets_t offsets;
-        auto key = parse_packet(packetData, pktHeader, offsets);
+
+         auto offsets = std::make_unique<PacketOffsets_t>();
+        auto key = parse_packet(packetCopy, headerCopy, offsets);
 
         //create new 'packetstream',otherwise hash key into a thread
         //queue packet into fifo per thread
