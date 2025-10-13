@@ -131,6 +131,15 @@ void timer(const pcapabvparser::ASTPtr ast)
 }
 
 */
+//hash function for packet key
+struct VectorHash {
+    std::size_t operator()(const std::vector<uint8_t>& vec) const {
+        // Treat the vector's data as a string_view over raw bytes
+        std::string_view view(reinterpret_cast<const char*>(vec.data()), vec.size());
+        return std::hash<std::string_view>{}(view);
+    }
+};
+
 
 
 
@@ -149,6 +158,7 @@ enum PcapErrorType
 
 }
 
+//nned to capture signals (cntrl c, kill ...) and flush all pcap evaluators
 
 int main(int argc, char *argv[])
 {
@@ -287,7 +297,11 @@ int main(int argc, char *argv[])
 
         //create new 'packetstream',otherwise hash key into a thread
         //queue packet into fifo per thread
-        //size_t target = hasher(key) % NUM_CONSUMERS;
+          VectorHash hasher;
+        size_t target = hasher(*key) % NUM_CONSUMERS;
+
+        //push informationation onto correct queue
+
     }
 
    // for (auto& t : consumer_pcap_process_thread) t.detach();
