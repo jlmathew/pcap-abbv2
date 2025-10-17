@@ -3,23 +3,24 @@
 namespace pcapabvparser
 {
 
-std::unique_ptr<std::vector<uint8_t>> parse_packet(
-     std::unique_ptr<uint8_t[]>& uniquePacket,
-     std::unique_ptr<pcap_pkthdr>& header,
-     std::unique_ptr<PacketOffsets_t>& uniqueOffsets)
-{
-    auto key = std::make_unique<std::vector<uint8_t>>();
 
-//std::vector<uint8_t> parse_packet(const u_char* packet, const pcap_pkthdr* header, PacketOffsets_t& offsets)
-//{
-    //std::vector<uint8_t> key;
+std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_t>> parse_packet(
+    const uint8_t* packet,
+    const pcap_pkthdr* header)
+
+{
+
+    auto key = std::make_unique<std::vector<uint8_t>>();
+    auto offsets = std::make_unique<PacketOffsets_t>();
+
+
     size_t offset = 0;
+
     size_t caplen = header->caplen;
-    uint8_t *packet=uniquePacket.get();
-    PacketOffsets_t *offsets=uniqueOffsets.get();
+
 
     // L2: Ethernet
-    if (offset + sizeof(ether_header) > caplen) return key;
+    if (offset + sizeof(ether_header) > caplen)  return  std::make_pair( std::move(key),std::move(offsets) );
     const ether_header* eth = reinterpret_cast<const ether_header*>(packet + offset);
     offsets->ethertype = ntohs(eth->ether_type);
     offsets->l2_offset = offset;
@@ -30,13 +31,13 @@ std::unique_ptr<std::vector<uint8_t>> parse_packet(
     key->push_back(offsets->ethertype & 0xFF);
 
     // L3: IP
-    if (offset >= caplen) return key;
+    if (offset >= caplen) return  std::make_pair( std::move(key),std::move(offsets) );
     const u_char* l3 = packet + offset;
     uint8_t ip_version = (l3[0] >> 4);
 
     if (offsets->ethertype == ETHERTYPE_IP && ip_version == 4)
     {
-        if (offset + sizeof(ip) > caplen) return key;
+        if (offset + sizeof(ip) > caplen)return  std::make_pair( std::move(key),std::move(offsets) );
         const ip* ipv4 = reinterpret_cast<const ip*>(l3);
         offsets->ip_protocol = ipv4->ip_p;
         offsets->l3_offset = offset;
@@ -56,7 +57,7 @@ std::unique_ptr<std::vector<uint8_t>> parse_packet(
     }
     else if (offsets->ethertype == ETHERTYPE_IPV6 && ip_version == 6)
     {
-        if (offset + sizeof(ip6_hdr) > caplen) return key;
+        if (offset + sizeof(ip6_hdr) > caplen) return  std::make_pair( std::move(key),std::move(offsets) );
         const ip6_hdr* ipv6 = reinterpret_cast<const ip6_hdr*>(l3);
         offsets->ip_protocol = ipv6->ip6_nxt;
         offsets->l3_offset = offset;
@@ -88,7 +89,7 @@ std::unique_ptr<std::vector<uint8_t>> parse_packet(
     }
     else
     {
-        return key; // unsupported L3
+        return  std::make_pair( std::move(key),std::move(offsets) );// unsupported L3
     }
 
     // L4: TCP, UDP, ICMP
@@ -184,12 +185,15 @@ std::unique_ptr<std::vector<uint8_t>> parse_packet(
 
 
 
-    return key;
+    return  std::make_pair( std::move(key),std::move(offsets) );
 }
 
 void print_key(std::unique_ptr<std::vector<uint8_t>> key)  {
-
-
+//std::vector<uint8_t> *val=key.get();
+for (unsigned int i=0; i<key->size();i++) {
+  std::cout <<std::hex << static_cast<uint8_t>((*key)[i]); //key[i];
+}
+std::cout << std::endl;
 }
 
 

@@ -5,6 +5,7 @@
 #include <pcap/pcap.h>
 #include "nonblockingbuffers.h"
 #include "pcapkey.h"
+#include <random>
 
 //using namespace std;
 using namespace pcapabvparser;
@@ -110,33 +111,16 @@ int test1()
     return 0;
 }
 
-void timer(const pcapabvparser::ASTPtr ast)
-{
-    // Start timer
-    auto start = std::chrono::high_resolution_clock::now();
-
-    // Call the function
-    for(int i=0; i<1000000; i++)
-    {
-//ASTPtr
-    }
-
-    // Stop timer
-    auto end = std::chrono::high_resolution_clock::now();
-
-    // Calculate duration
-    std::chrono::duration<double, std::milli> duration = end - start;
-
-    std::cout << "doWork() took " << duration.count() << " ms" << std::endl;
-}
 
 */
 //hash function for packet key
-struct VectorHash {
-    std::size_t operator()(const std::vector<uint8_t>& vec) const {
+struct VectorHash
+{
+    std::size_t operator()(const std::vector<uint8_t>& vec) const
+    {
         // Treat the vector's data as a string_view over raw bytes
         std::string_view view(reinterpret_cast<const char*>(vec.data()), vec.size());
-        return std::hash<std::string_view>{}(view);
+        return std::hash<std::string_view> {}(view);
     }
 };
 
@@ -205,44 +189,36 @@ int main(int argc, char *argv[])
     const u_char *packetData;
     struct pcap_pkthdr *pktHeader;
     int resultTimeout=0;
-    //using packetProcessingData_t = std::tuple<const u_char *, struct pcap_pkthdr *, std::vector<char>  >;
-    //struct pcap_pkthdr* header;
-    //const u_char* packet;
 
-    //create threads (based upon global options) to handle packets
-    //create signal capture in each thread, if killed or cntrl-c, each thread flushes
-    //pass to thread, pcap_pkthdr, packetdata, pcap proto layer help, pcap key
-
-
-    // constexpr uint32_t bufferSize=sizeof(pktBufferData_t);
-//constexpr size_t BUFFER_SIZE = 256;
-//constexpr size_t numConsumers=4;
     const size_t BUFFER_SIZE = 256;
     const size_t numConsumers=4;
-    //NonBlockingCircularBuffer<pktBufferData_t, BUFFER_SIZE> nb_buffers[numConsumers];
-    //auto nb_buffers = new NonBlockingCircularBuffer<pktBufferData_t, BUFFER_SIZE> nb_buffers[numConsumers];
-    std::shared_ptr<NonBlockingCircularBuffer<pktBufferData_t, BUFFER_SIZE>[]> nb_buffers(new NonBlockingCircularBuffer<pktBufferData_t, BUFFER_SIZE>[numConsumers]);
 
 
-
-    std::vector<std::thread> packetDataProccesors;
-    for (size_t i = 0; i < NUM_CONSUMERS; ++i)
+    std::vector< std::shared_ptr< NonBlockingCircularBuffer<std::unique_ptr<pktBufferData_t>, BUFFER_SIZE > > > nb_buffers;
+    nb_buffers.reserve(numConsumers);
+    for (size_t i = 0; i < numConsumers; ++i)
     {
-        /*packetDataProccesors.emplace_back([i, &nb_buffers]()
-        {
-            consumer_pcap_process_thread(i, &nb_buffers[i]);
-        });*/
+        nb_buffers.emplace_back(std::make_shared<NonBlockingCircularBuffer<std::unique_ptr<pktBufferData_t>, BUFFER_SIZE>>());
     }
 
 
+    std::atomic<bool> consumersReady{false}; //ensure all consumer threads are ready before processing
+    std::vector<std::thread> packetDataProccesors;
+    for (size_t i = 0; i < numConsumers; ++i)
+    {
+        packetDataProccesors.emplace_back([i, &nb_buffers, &consumersReady]()
+        {
+            while (!consumersReady.load(std::memory_order_acquire))
+            {
+                std::this_thread::yield();
+            }
+            consumer_pcap_process_thread(i, nb_buffers[i]);
+        });
+    }
 
-    //  while (messages_processed.load(std::memory_order_relaxed) < NUM_MESSAGES)
-//   {
-    //std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//   }
+//test
+    consumersReady.store(true, std::memory_order_release);
 
-
-    //loop for packet captures
 
 
     if (!pcapabvparser::globalOptions.useFileName)   //default is input via stdin
@@ -272,9 +248,6 @@ int main(int argc, char *argv[])
 
 //loop over all packets
 
-    //std::map<std::string, PacketInspector_t *> packetsOfInterest;
-    //PacketInspector_t * packetFollower;
-
 
     //this function blocks
     while((resultTimeout = pcap_next_ex( pcapInputStream, &pktHeader, &packetData)) >= 0)
@@ -283,8 +256,8 @@ int main(int argc, char *argv[])
             // Timeout elapsed
             continue;
 
-            //get copies for smart pointers
-            // Copy header and packet data into unique_ptrs
+        //get copies for smart pointers
+        // Copy header and packet data into unique_ptrs
         auto headerCopy = std::make_unique<pcap_pkthdr>(*pktHeader);
 
         auto packetCopy = std::unique_ptr<uint8_t[]>(new uint8_t[pktHeader->caplen]);
@@ -292,19 +265,25 @@ int main(int argc, char *argv[])
 
 
 
-         auto offsets = std::make_unique<PacketOffsets_t>();
-        auto key = parse_packet(packetCopy, headerCopy, offsets);
+        //auto offsets = std::make_unique<pktBufferData_t>();
+
+        //auto key = parse_packet(packetCopy, headerCopy, offsets);
+        auto [key,offsets] = parse_packet( packetData,  pktHeader);
 
         //create new 'packetstream',otherwise hash key into a thread
         //queue packet into fifo per thread
-          VectorHash hasher;
-        size_t target = hasher(*key) % NUM_CONSUMERS;
+        VectorHash hasher;
+        size_t target = hasher(*key) % numConsumers;
 
         //push informationation onto correct queue
+        auto queueData = std::make_unique<pktBufferData_t>(std::move(headerCopy),std::move(packetCopy),std::move(offsets), std::move(key),target);
+        //while (!nb_buffers[i]->push(testData)) {
+        nb_buffers[target]->push(std::move(queueData));
 
     }
 
-   // for (auto& t : consumer_pcap_process_thread) t.detach();
+
+    // for (auto& t : consumer_pcap_process_thread) t.detach();
     return 0;
 }
 
