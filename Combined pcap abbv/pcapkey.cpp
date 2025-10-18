@@ -151,12 +151,13 @@ std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_
     {
         const icmp* icmpv4 = reinterpret_cast<const icmp*>(l4);
         protoOffsets->icmp_type = icmpv4->icmp_type;
-
+        protoOffsets->icmp_code = icmpv4->icmp_code;
     }
     else if (protoOffsets->ip_protocol == IPPROTO_ICMPV6 && offset + sizeof(icmp6_hdr) <= caplen)
     {
         const icmp6_hdr* icmpv6 = reinterpret_cast<const icmp6_hdr*>(l4);
         protoOffsets->icmp_type = icmpv6->icmp6_type;
+        protoOffsets->icmp_code = icmpv6->icmp6_code;
     }
 
     // Add L4 info to key
@@ -166,7 +167,7 @@ std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_
     if ((protoOffsets->ip_protocol == IPPROTO_ICMP ) || (protoOffsets->ip_protocol == IPPROTO_ICMPV6))
     {
         key->push_back(protoOffsets->icmp_type);
-        key->push_back((uint8_t) 0); //should be ICMP code
+        key->push_back(protoOffsets->icmp_code);
         //ICMP will have 'port key' set to 0
         key->push_back((uint8_t) 0); //need to add due to no ICMP ports, should not be necessary, but unsure if this would affect hashing for now TODO
         key->push_back((uint8_t) 0);
@@ -204,8 +205,10 @@ std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_
 void print_key(std::vector<uint8_t> key)
 {
 //std::vector<uint8_t> *val=key.get();
-std::cout << "PRINTKEY: ########" << std::endl;
-std::cout << "Size:" << key.size() << std::endl;
+    std::ostringstream oss;  //parameter should be ostringstream, not cout (allow parameter to be passed) to allow strings as well
+
+    std::cout << "PRINTKEY: ########" << std::endl;
+    std::cout << "Size:" << key.size() << std::endl;
     for (unsigned int i=0; i<key.size(); i++)
     {
         std::cout <<std::hex << std::uppercase
@@ -219,16 +222,38 @@ std::cout << "Size:" << key.size() << std::endl;
         std::cout << "IPv4 addr1:" << std::dec << static_cast<int>(key[2])  << "." << static_cast<int>(key[3]) << "." << static_cast<int>(key[4]) << "." << static_cast<int>(key[5]) << std::endl;
         std::cout << "IPv4 addr2:" << std::dec << static_cast<int>(key[6]) << "." <<  static_cast<int>(key[7]) << "."  << static_cast<int>(key[8]) << "." << static_cast<int>(key[9]) << std::endl;
     }
+    else if (41 == (key[0]*256+key[1]))
+    {
+        std::cout << "Ipv6 addr1:";
+        for (size_t i = 0; i < 16; i += 2)
+        {
+            uint16_t segment = (key[i] << 8) | key[i + 1];
+            std::cout  << std::hex << std::setw(4) << std::setfill('0') << segment;
+            if (i < 14) std::cout << ":";
+        }
+        std::cout << std::endl;
+        for (size_t i = 0; i < 16; i += 2)
+        {
+            uint16_t segment = (key[i+16] << 8) | key[i + 1];
+            std::cout  << std::hex << std::setw(4) << std::setfill('0') << segment;
+            if (i < 30) std::cout << ":";
+        }
+        std::cout << std::endl;
+    }
     else
     {
         std::cout << "Invalid L3 protocol" << std::endl;
     }
     std::cout << "L4 proto:" << std::dec << std::uppercase << std::setw(2)<< (int)key[10] << std::endl;;
-    if (key[10]==1) { //ICMP
-      std::cout << "ICMP type:" << std::dec << (int) key[11] << std::endl;
-    } else {
-    std::cout << "Port1:" << std::dec << (uint16_t) (key[11]*256+key[12]) << std::endl;
-    std::cout << "Port2:" << std::dec << (uint16_t) (key[13]*256+key[14]) << std::endl;
+    if (key[10]==1)   //ICMP
+    {
+        std::cout << "ICMP type:" << std::dec << (int) key[11] << std::endl;
+        std::cout << "ICMP code:" << std::dec << (int) key[12] << std::endl;
+    }
+    else
+    {
+        std::cout << "Port1:" << std::dec << (uint16_t) (key[11]*256+key[12]) << std::endl;
+        std::cout << "Port2:" << std::dec << (uint16_t) (key[13]*256+key[14]) << std::endl;
     }
 
     std::cout << "END PRINTKEY #####\n\n" << std::endl;

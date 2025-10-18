@@ -34,6 +34,7 @@ struct PacketOffsets_t
     uint16_t src_port = 0;
     uint16_t dst_port = 0;
     uint8_t icmp_type = 0;
+    uint8_t icmp_code = 0;
     //uint8_t tls_record_type = 0;
     //uint16_t tls_version = 0;
     //uint8_t tls_handshake_type = 0;

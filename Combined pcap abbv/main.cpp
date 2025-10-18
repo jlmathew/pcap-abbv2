@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
         size_t target = hasher(*key) % numConsumers;
 print_key(*key);
         //push informationation onto correct queue
-        auto queueData = std::make_unique<pktBufferData_t>(std::move(headerCopy),std::move(packetCopy),std::move(offsets), std::move(key),target);
+        auto queueData = std::make_unique<pktBufferData_t>(std::move(headerCopy),std::move(packetCopy),std::move(offsets), std::move(key),target); //target should not be needed
         //while (!nb_buffers[i]->push(testData)) {
         std::cout << "[COUNTER COUNT]=" << counter << std::endl;
         nb_buffers[target]->push(std::move(queueData));
