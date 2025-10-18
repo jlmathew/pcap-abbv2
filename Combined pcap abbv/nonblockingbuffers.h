@@ -32,7 +32,6 @@ struct pktBufferData_t {
     std::unique_ptr<PacketOffsets_t> protoOffset;
     std::unique_ptr<std::vector<uint8_t>> key;
     uint32_t index = 0; // optional debug index
-
     pktBufferData_t(std::unique_ptr<pcap_pkthdr> header,
                     std::unique_ptr<uint8_t[]> data,
                     std::unique_ptr<PacketOffsets_t> offset,

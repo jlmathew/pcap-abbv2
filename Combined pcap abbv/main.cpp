@@ -7,6 +7,12 @@
 #include "pcapkey.h"
 #include <random>
 
+
+    #include <unistd.h>
+#include <limits.h>
+#include <dirent.h>
+
+
 //using namespace std;
 using namespace pcapabvparser;
 
@@ -148,6 +154,7 @@ int main(int argc, char *argv[])
 {
     //test1();
 
+//sudo apt install libpcap-dev
 
     //string parse options
 
@@ -190,7 +197,38 @@ int main(int argc, char *argv[])
     struct pcap_pkthdr *pktHeader;
     int resultTimeout=0;
 
-    const size_t BUFFER_SIZE = 256;
+
+
+
+
+    if (!pcapabvparser::globalOptions.useFileName)   //default is input via stdin
+    {
+        pcapInputStream = pcap_fopen_offline(stdin, errbuf); //reversed?
+
+        if (nullptr == pcapInputStream)
+        {
+            std::cerr << "Error: Unable to open input stream" << errbuf << std::endl;
+            return Errors::BAD_FILEDESCRIPTOR_OPEN;
+        }
+
+
+    }
+    else      // Open the file for reading, get file descriptor
+    {
+        //pcapInputStream = pcap_open_offline(pcapabvparser::globalOptions.inputFileName.c_str(), errbuf);
+        pcapInputStream = pcap_open_offline("test.pcap", errbuf);
+        if (nullptr == pcapInputStream)
+        {
+            std::cerr << "Error: Unable to open file " << pcapabvparser::globalOptions.inputFileName << std::endl;
+            return Errors::BAD_FILE_OPEN;
+        }
+
+    }
+    layer2Proto = pcap_datalink(pcapInputStream);
+
+
+    //setup non block buffers and threaded child packet processing application
+        const size_t BUFFER_SIZE = 256;
     const size_t numConsumers=4;
 
 
@@ -219,39 +257,37 @@ int main(int argc, char *argv[])
 //test
     consumersReady.store(true, std::memory_order_release);
 
+    //find the current location
 
-
-    if (!pcapabvparser::globalOptions.useFileName)   //default is input via stdin
-    {
-        pcapInputStream = pcap_fopen_offline(stdin, errbuf); //reversed?
-
-        if (nullptr == pcapInputStream)
-        {
-            std::cerr << "Error: Unable to open input stream" << errbuf << std::endl;
-            return Errors::BAD_FILEDESCRIPTOR_OPEN;
-        }
-
-
+/*
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+        std::cout << "Current working directory: " << cwd << std::endl;
+    } else {
+        perror("getcwd() error");
     }
-    else      // Open the file for reading, get file descriptor
-    {
-        pcapInputStream = pcap_open_offline(pcapabvparser::globalOptions.inputFileName.c_str(), errbuf);
-        if (nullptr == pcapInputStream)
-        {
-            std::cerr << "Error: Unable to open file " << pcapabvparser::globalOptions.inputFileName << std::endl;
-            return Errors::BAD_FILE_OPEN;
-        }
-        ;
+     DIR* dir = opendir(".");
+    if (dir == nullptr) {
+        perror("opendir");
+        return 1;
     }
-    layer2Proto = pcap_datalink(pcapInputStream);
 
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::cout << entry->d_name << std::endl;
+    }
+
+    closedir(dir);
+*/
 
 //loop over all packets
 
 
     //this function blocks
+    uint64_t counter=0;
     while((resultTimeout = pcap_next_ex( pcapInputStream, &pktHeader, &packetData)) >= 0)
     {
+    counter++;
         if(resultTimeout == 0)
             // Timeout elapsed
             continue;
@@ -270,20 +306,23 @@ int main(int argc, char *argv[])
         //auto key = parse_packet(packetCopy, headerCopy, offsets);
         auto [key,offsets] = parse_packet( packetData,  pktHeader);
 
+        //dont process invalid packets
+        if (key->size()==0) { continue;}
         //create new 'packetstream',otherwise hash key into a thread
         //queue packet into fifo per thread
         VectorHash hasher;
         size_t target = hasher(*key) % numConsumers;
-
+print_key(*key);
         //push informationation onto correct queue
         auto queueData = std::make_unique<pktBufferData_t>(std::move(headerCopy),std::move(packetCopy),std::move(offsets), std::move(key),target);
         //while (!nb_buffers[i]->push(testData)) {
+        std::cout << "[COUNTER COUNT]=" << counter << std::endl;
         nb_buffers[target]->push(std::move(queueData));
 
     }
 
 
-    // for (auto& t : consumer_pcap_process_thread) t.detach();
+    for (auto& t : packetDataProccesors) t.detach();
     return 0;
 }
 
