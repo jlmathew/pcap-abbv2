@@ -21,6 +21,8 @@ namespace pcapabvparser
 
 extern std::string version;
 
+//need time to run (in seconds)
+
  struct globalOptions_t
 {
     globalOptions_t() : bufferSizePerTotalFlush(30000000), bufferPacketsBefore(10), bufferPacketsAfter(7), bufferSizePerStreamFlush(30000),

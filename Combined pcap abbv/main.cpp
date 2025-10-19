@@ -12,6 +12,8 @@
 #include <limits.h>
 #include <dirent.h>
 
+//sudo apt install libpcap-dev
+//required for linux
 
 //using namespace std;
 using namespace pcapabvparser;
@@ -119,16 +121,6 @@ int test1()
 
 
 */
-//hash function for packet key
-struct VectorHash
-{
-    std::size_t operator()(const std::vector<uint8_t>& vec) const
-    {
-        // Treat the vector's data as a string_view over raw bytes
-        std::string_view view(reinterpret_cast<const char*>(vec.data()), vec.size());
-        return std::hash<std::string_view> {}(view);
-    }
-};
 
 
 
@@ -165,6 +157,7 @@ int main(int argc, char *argv[])
     std::cout << "tag filter:" << parseCliOptions.getTagFilter() << std::endl;
 
     //same data filtering, but the actual functions are thread specified.
+    //remove when working
     pcapabvparser::FnParser parser(parseCliOptions.getTagFilter());
     auto tree = parser.parse();
 
@@ -185,9 +178,7 @@ int main(int argc, char *argv[])
         });
     }
 
-    //std::cout << "Result: " << tree->eval() << std::endl; //false
 
-    //get 'packet of interest' and 'packet stream to save' filters
 
     //variables being used
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -306,7 +297,7 @@ int main(int argc, char *argv[])
         //auto key = parse_packet(packetCopy, headerCopy, offsets);
         auto [key,offsets] = parse_packet( packetData,  pktHeader);
 
-        //dont process invalid packets
+        //dont process invalid packets, need to make configurable
         if (key->size()==0) { continue;}
         //create new 'packetstream',otherwise hash key into a thread
         //queue packet into fifo per thread

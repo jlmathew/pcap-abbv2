@@ -4,6 +4,7 @@ namespace pcapabvparser
 {
 
 
+//need to add link layer proto
 std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_t>> parse_packet(
             const uint8_t* packet,
             const pcap_pkthdr* header)
@@ -20,6 +21,7 @@ std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_
 
 
     // L2: Ethernet
+    //need to have 'sizeof' dependent upon packet capture type
     if (offset + sizeof(ether_header) > caplen)
     {
         key->clear();

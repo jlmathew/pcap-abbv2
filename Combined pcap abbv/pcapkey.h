@@ -17,9 +17,22 @@
 #include <memory>
 #include "nonblockingbuffers.h"
 #include <utility>
+#include <random>
 
 #include <iomanip>
+
 namespace pcapabvparser {
+
+//hash function for packet key
+/*struct VectorHash
+{
+    std::size_t operator()(const std::vector<uint8_t>& vec) const
+    {
+        // Treat the vector's data as a string_view over raw bytes
+        std::string_view view(reinterpret_cast<const char*>(vec.data()), vec.size());
+        return std::hash<std::string_view> {}(view);
+    }
+};*/
 
 
 
