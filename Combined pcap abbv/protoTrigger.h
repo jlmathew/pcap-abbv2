@@ -12,11 +12,13 @@
 #include <cctype>
 #include <stdexcept>
 #include <string>
+#include <pcap/pcap.h>
 
 //#include "parser.h"
 namespace pcapabvparser
 {
 //only test/placeholder
+struct PacketOffsets_t;
 using packetLayerHelper_t = int;
 
 using Func = std::function<int(std::vector<int>)>;
@@ -39,6 +41,7 @@ class protoTrigger
 protected:
 std::string m_myId;
 uint16_t m_protocolNumber;
+public:
    protoTrigger();
    protoTrigger(packetLayerHelper_t *helper);
    void setRawPacket(packetLayerHelper_t *packetLayerHelper);
@@ -96,6 +99,19 @@ class TriggerGen
    protoTrigger * getProtocol(const std::string &protoName);
 };
 
-
+//this class handles packet stream information at a per protocol issue
+class PacketStreamEval {
+public:
+PacketStreamEval();
+virtual ~PacketStreamEval();
+void registerProtoFnNames(std::vector<std::string> protoFnNames);
+auto returnProtoFunction(std::vector<std::string> protoFnNames);
+void setSavePacketTrigger(bool);
+void setSaveStreamTrigger(bool);
+void flushPacketsToDisk();
+void transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, PacketOffsets_t * pktOffsets);
+private:
+std::unordered_multimap<std::string , protoTrigger > protoMap;
+};
 }
 #endif // __PROTOTRIGGER_H__

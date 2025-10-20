@@ -138,4 +138,16 @@ TriggerGen::TriggerGen() {}
    TriggerGen::~TriggerGen() {}
    protoTrigger * TriggerGen::getProtocol(const std::string &protoName) { return nullptr;}
 
-   }
+
+
+
+
+PacketStreamEval::PacketStreamEval() {}
+PacketStreamEval::~PacketStreamEval() {}
+void PacketStreamEval::registerProtoFnNames(std::vector<std::string> protoFnNames) {}
+auto PacketStreamEval::returnProtoFunction(std::vector<std::string> protoFnNames) {}
+void PacketStreamEval::setSavePacketTrigger(bool) {}
+void PacketStreamEval::setSaveStreamTrigger(bool) {}
+void PacketStreamEval::flushPacketsToDisk() {}
+void PacketStreamEval::transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, PacketOffsets_t * pktOffsets) {}
+}
