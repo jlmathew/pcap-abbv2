@@ -142,12 +142,37 @@ TriggerGen::TriggerGen() {}
 
 
 
-PacketStreamEval::PacketStreamEval() {}
+PacketStreamEval::PacketStreamEval() {
+
+}
+
 PacketStreamEval::~PacketStreamEval() {}
-void PacketStreamEval::registerProtoFnNames(std::vector<std::string> protoFnNames) {}
-auto PacketStreamEval::returnProtoFunction(std::vector<std::string> protoFnNames) {}
+void PacketStreamEval::configurationFiles(std::string configFile) {}
+void PacketStreamEval::registerProtoFnNames(std::vector<std::string> protoFnNames) {
+for(auto protoName : protoFnNames )
+{
+
+}
+
+}
+auto PacketStreamEval::returnProtoFunction(std::string protoFnName) {}
 void PacketStreamEval::setSavePacketTrigger(bool) {}
 void PacketStreamEval::setSaveStreamTrigger(bool) {}
 void PacketStreamEval::flushPacketsToDisk() {}
-void PacketStreamEval::transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, PacketOffsets_t * pktOffsets) {}
+void PacketStreamEval::transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, PacketOffsets_t * pktOffsets) {
+
+//save packet
+m_packetHistory.emplace_back(std::move(header), std::move(data));
+
+//check if packet is interesting or to save
+
+//flush prior packets
+
+//calculate how many future packets to save
+
+//flush/erase/drop all packets beyond required size
+
+
 }
+
+} //end namespace

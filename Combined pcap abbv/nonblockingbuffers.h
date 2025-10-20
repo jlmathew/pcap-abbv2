@@ -146,6 +146,7 @@ std::atomic<uint64_t> messages_processed;
         }
         messages_processed.fetch_add(1, std::memory_order_relaxed);
         //additional processing here
+        //should we have a per thread watchdog timer, and have the main thread put a 'dummy' message, to trigger flushing or removal of expired packet stream pcaps files?
 
 
         //hash lookup new thread or existing?
@@ -157,6 +158,8 @@ std::atomic<uint64_t> messages_processed;
         {
             //create new Object
             packetInfo=new PacketStreamEval();
+            //register function names
+            packetInfo->registerProtoFnNames(functionNames);
         }
         else
         {
@@ -165,13 +168,15 @@ std::atomic<uint64_t> messages_processed;
 
         }
         //transfer raw packet to network stream object (to queue for saves)
-        //auto queueData = std::make_unique<pktBufferData_t>(std::move(headerCopy),std::move(packetCopy),std::move(offsets), std::move(key),target);
-
         packetInfo->transferPacket(std::move(opt.value()->pktHeader), std::move(opt.value()->pkt), (opt.value()->protoOffset.get()));
 
-        //register functions to local thread evaluator
+        //map functions to local thread evaluator
+
         //set flags (save packet, save stream) as necessary
 
+
+        //remove unneeded unique_ptr's
+        opt.value()->protoOffset.reset(); // offset only needed for packet processing
 
         std::cout << "thread " << threadId << " received packet #"  << messages_processed << " size " << opt.value()->key->size() << std::endl;
     }
