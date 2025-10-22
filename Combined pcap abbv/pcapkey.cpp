@@ -164,7 +164,7 @@ std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_
 
     // Add L4 info to key
     key->push_back(protoOffsets->ip_protocol);
-    std::cout << "L4 proto:" << std::dec << protoOffsets->ip_protocol << std::endl;
+//    std::cout << "L4 proto:" << std::dec << protoOffsets->ip_protocol << std::endl;
     //ICMP doesnt use ports
     if ((protoOffsets->ip_protocol == IPPROTO_ICMP ) || (protoOffsets->ip_protocol == IPPROTO_ICMPV6))
     {
@@ -199,7 +199,7 @@ std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_
     }
 
 //only print ip/tcp/udp/icmp
-    print_key(*key);
+    //print_key(*key);
     return  std::make_pair( std::move(key),std::move(protoOffsets) );
 }
 
@@ -246,7 +246,7 @@ void print_key(std::vector<uint8_t> key)
     {
         std::cout << "Invalid L3 protocol" << std::endl;
     }
-    std::cout << "L4 proto:" << std::dec << std::uppercase << std::setw(2)<< (int)key[10] << std::endl;;
+//    std::cout << "L4 proto:" << std::dec << std::uppercase << std::setw(2)<< (int)key[10] << std::endl;;
     if (key[10]==1)   //ICMP
     {
         std::cout << "ICMP type:" << std::dec << (int) key[11] << std::endl;

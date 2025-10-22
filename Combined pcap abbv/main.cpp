@@ -141,7 +141,7 @@ enum PcapErrorType
 }
 
 //nned to capture signals (cntrl c, kill ...) and flush all pcap evaluators
-
+//need to check for memory leaks
 int main(int argc, char *argv[])
 {
     //test1();
@@ -303,11 +303,11 @@ int main(int argc, char *argv[])
         //queue packet into fifo per thread
         VectorHash hasher;
         size_t target = hasher(*key) % numConsumers;
-print_key(*key);
+//print_key(*key);
         //push informationation onto correct queue
         auto queueData = std::make_unique<pktBufferData_t>(std::move(headerCopy),std::move(packetCopy),std::move(offsets), std::move(key),target); //target should not be needed
         //while (!nb_buffers[i]->push(testData)) {
-        std::cout << "[COUNTER COUNT]=" << counter << std::endl;
+        //std::cout << "[COUNTER COUNT]=" << counter << std::endl;
         nb_buffers[target]->push(std::move(queueData));
 
     }

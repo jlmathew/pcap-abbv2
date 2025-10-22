@@ -156,6 +156,8 @@ std::atomic<uint64_t> messages_processed;
         //create new object if new
         if (find_iter== packetStreamMap.end())
         {
+        std::cout << "new packet stream" << std::endl;
+        print_key(*(opt.value()->key));
             //create new Object
             packetInfo=new PacketStreamEval();
             //register function names
@@ -168,7 +170,7 @@ std::atomic<uint64_t> messages_processed;
 
         }
         //transfer raw packet to network stream object (to queue for saves)
-        packetInfo->transferPacket(std::move(opt.value()->pktHeader), std::move(opt.value()->pkt), (opt.value()->protoOffset.get()));
+        packetInfo->transferPacket(std::move(opt.value()->pktHeader), std::move(opt.value()->pkt), std::move(opt.value()->protoOffset));
 
         //map functions to local thread evaluator
 
@@ -178,7 +180,7 @@ std::atomic<uint64_t> messages_processed;
         //remove unneeded unique_ptr's
         opt.value()->protoOffset.reset(); // offset only needed for packet processing
 
-        std::cout << "thread " << threadId << " received packet #"  << messages_processed << " size " << opt.value()->key->size() << std::endl;
+//        std::cout << "thread " << threadId << " received packet #"  << messages_processed << " size " << opt.value()->key->size() << std::endl;
     }
 
 }

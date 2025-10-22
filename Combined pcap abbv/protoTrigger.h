@@ -12,6 +12,7 @@
 #include <cctype>
 #include <stdexcept>
 #include <string>
+#include <numeric>
 #include <deque>
 #include <pcap/pcap.h>
 
@@ -20,9 +21,49 @@ namespace pcapabvparser
 {
 //only test/placeholder
 struct PacketOffsets_t;
-using packetLayerHelper_t = int;
+using packetLayerHelper_t = PacketOffsets_t; //was 1 for debug
 
 using Func = std::function<int(std::vector<int>)>;
+//Function lambda holder
+template<typename Func>
+struct LambdaHolder {
+    Func func;
+    // Constructor
+    LambdaHolder(Func lamFunct) : func(lamFunct) {}
+    // Optional: call operator for convenience
+    int operator()(const std::vector<int>& v) const {
+        return func(v);
+    }
+};
+using LambdaHolderType = LambdaHolder<int(*)(const std::vector<int>&)>;
+
+// 1. Define a base class for callable objects.
+class ICallable {
+public:
+    virtual ~ICallable() = default;
+    virtual void call(const std::vector<int>& v) = 0;
+};
+
+// 2. Define a template to wrap a specific lambda type.
+template<typename Func>
+class LambdaWrapper : public ICallable {
+public:
+    explicit LambdaWrapper(Func func) : func_(std::move(func)) {}
+    void call(const std::vector<int>& v) override {
+        func_(v);
+    }
+private:
+    Func func_;
+};
+
+// 3. Define a helper function to create and return a raw pointer.
+// Ownership is transferred to the caller.
+template<typename Func>
+ICallable* make_lambda_holder(Func&& func) {
+    return new LambdaWrapper<Func>(std::forward<Func>(func));
+}
+
+using lambdaMap = std::unordered_multimap< std::string , ICallable*>  ;
 
 struct VectorHash
 {
@@ -44,14 +85,16 @@ std::string m_myId;
 uint16_t m_protocolNumber;
 public:
    protoTrigger();
-   protoTrigger(packetLayerHelper_t *helper);
+   void setHelper(packetLayerHelper_t *helper);
    void setRawPacket(packetLayerHelper_t *packetLayerHelper);
    virtual ~protoTrigger();
    protoTrigger(const protoTrigger &other);
    protoTrigger& operator=(const protoTrigger & other);
-   Func protoRequest(std::string &functName);
+   void protoRegister(lambdaMap &protoMap);
+   //LambdaHolderType protoRequest(std::string &functName);
+   //ICallable* protoTrigger::protoRequest(std::string &functName);
 
-   std::unordered_map<std::string, Func> m_functEval;
+   //std::unordered_map<std::string, LambdaHolderType> m_functEval;
    packetLayerHelper_t *m_packetLayerHelper;
    public:
 virtual const std::string id() const;
@@ -67,13 +110,31 @@ class protoTcpTrigger: public protoTrigger
         virtual ~protoTcpTrigger();
         protoTcpTrigger(const protoTcpTrigger& other);
         protoTcpTrigger& operator=(const protoTcpTrigger& other);
-        Func protoRequest(std::string &functName);
-
+        LambdaHolderType protoRequest(std::string &functName);
+        void protoRegister(lambdaMap &m_functEval);
     protected:
+    void createNameLambda();
+    int a;
+
+
+};
+/*
+class protoIpv4Trigger: public protoTrigger
+{
+
+    public:
+        protoIpv4Trigger();
+        protoIpv4Trigger(packetLayerHelper_t *helper);
+        virtual ~protoIpv4Trigger();
+        protoIpv4Trigger(const protoIpv4Trigger& other);
+        protoIpv4Trigger& operator=(const protoIpv4Trigger& other);
+        LambdaHolderType protoRequest(std::string &functName);
+
     void createNameLambda();
 
 
 };
+
 class protoUdpTrigger: public protoTrigger
 {
 
@@ -83,7 +144,7 @@ class protoUdpTrigger: public protoTrigger
         virtual ~protoUdpTrigger();
         protoUdpTrigger(const protoUdpTrigger& other);
         protoUdpTrigger& operator=(const protoUdpTrigger& other);
-        Func protoRequest(std::string &functName);
+        LambdaHolderType protoRequest(std::string &functName);
 
     protected:
     void createNameLambda();
@@ -99,29 +160,14 @@ class protoIcmpTrigger: public protoTrigger
         virtual ~protoIcmpTrigger();
         protoIcmpTrigger(const protoIcmpTrigger& other);
         protoIcmpTrigger& operator=(const protoIcmpTrigger& other);
-        Func protoRequest(std::string &functName);
+        LambdaHolderType protoRequest(std::string &functName);
 
     protected:
     void createNameLambda();
 
 
 };
-class protoIpv4Trigger: public protoTrigger
-{
 
-    public:
-        protoIpv4Trigger();
-        protoIpv4Trigger(packetLayerHelper_t *helper);
-        virtual ~protoIpv4Trigger();
-        protoIpv4Trigger(const protoIpv4Trigger& other);
-        protoIpv4Trigger& operator=(const protoIpv4Trigger& other);
-        Func protoRequest(std::string &functName);
-
-    protected:
-    void createNameLambda();
-
-
-};
 
 class protoIpv6Trigger: public protoTrigger
 {
@@ -132,13 +178,14 @@ class protoIpv6Trigger: public protoTrigger
         virtual ~protoIpv6Trigger();
         protoIpv6Trigger(const protoIpv6Trigger& other);
         protoIpv6Trigger& operator=(const protoIpv6Trigger& other);
-        Func protoRequest(std::string &functName);
+        LambdaHolderType protoRequest(std::string &functName);
 
     protected:
     void createNameLambda();
 
 
 };
+
 
 class TriggerGen
 {
@@ -147,6 +194,10 @@ class TriggerGen
    virtual ~TriggerGen();
    protoTrigger * getProtocol(const std::string &protoName);
 };
+
+*/
+
+// Function that accepts the struct and calls the lambda
 
 //this class handles packet stream information at a per protocol issue
 class PacketStreamEval {
@@ -161,12 +212,15 @@ auto returnProtoFunction(std::string protoFnName);
 void setSavePacketTrigger(bool);
 void setSaveStreamTrigger(bool);
 void flushPacketsToDisk();
-void transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, PacketOffsets_t * pktOffsets);
+void transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, std::unique_ptr<PacketOffsets_t > &&pktOffsets);
 private:
 //cached mapping of protocol to lambda
-std::unordered_multimap<std::string , protoTrigger > m_protoMap;
+ //std::unordered_map<std::string, LambdaHolderType> m_protoLambdaMap;
+ std::unordered_multimap< std::string , ICallable*> m_protoLambdaMap; //m_lambda_map;
+
 //save unique protocols based upon filters (tcp, icmp, ipv6, etc)
-std::vector<protoTrigger> m_protocolsUsed;
+std::unordered_multimap< std::string , protoTrigger *> m_protocolsUsed;
+
 //packet history (for before intested tagged packets), also post packets after tagging
 //dequeue to popping off the front unsaved older packets
 
