@@ -15,6 +15,7 @@
 #include <numeric>
 #include <deque>
 #include <pcap/pcap.h>
+#include "pcapparser.h"
 
 //#include "parser.h"
 namespace pcapabvparser
@@ -213,6 +214,7 @@ void setSavePacketTrigger(bool);
 void setSaveStreamTrigger(bool);
 void flushPacketsToDisk();
 void transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, std::unique_ptr<PacketOffsets_t > &&pktOffsets);
+void evaluatePacket(pcap_pkthdr *hdr, uint8_t *data, PacketOffsets_t *offsets, ASTNode *tree);
 private:
 //cached mapping of protocol to lambda
  //std::unordered_map<std::string, LambdaHolderType> m_protoLambdaMap;

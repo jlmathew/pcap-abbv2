@@ -43,11 +43,11 @@ struct PacketOffsets_t
     size_t l4_offset = 0;
     size_t payload_offset = 0;
     uint16_t ethertype = 0;  //L3
-    uint8_t ip_protocol = 0;  //L4
     uint16_t src_port = 0;
     uint16_t dst_port = 0;
     uint8_t icmp_type = 0;
     uint8_t icmp_code = 0;
+        uint8_t ip_protocol = 0;  //L4
     //uint8_t tls_record_type = 0;
     //uint16_t tls_version = 0;
     //uint8_t tls_handshake_type = 0;

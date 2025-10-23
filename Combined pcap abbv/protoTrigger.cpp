@@ -241,6 +241,8 @@ std::cout << "registered function TCP." << std::endl;
     }
 
 }
+//void PacketStreamEval::evaluatePacket(pcap_pkthdr *hdr, uint8_t[] &data, PacketOffsets_t *offsets, ASTPtr &tree) {}
+void PacketStreamEval::evaluatePacket(pcap_pkthdr* hdr, uint8_t* data, PacketOffsets_t* offsets, ASTNode * tree) {}
 auto PacketStreamEval::returnProtoFunction(std::string protoFnName) {}
 void PacketStreamEval::setSavePacketTrigger(bool) {}
 void PacketStreamEval::setSaveStreamTrigger(bool) {}

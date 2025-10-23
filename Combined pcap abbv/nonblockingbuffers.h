@@ -109,7 +109,8 @@ std::atomic<uint64_t> messages_processed;
 
 //create local thread evaluator, only doing packets of interest for now
     pcapabvparser::FnParser parser(globalOptions.pcapPacketOfInterestFilter);
-    auto tree = parser.parse();    size_t threadId=id;
+    auto tree = parser.parse();
+     size_t threadId=id;
     std::vector<std::string> functionNames;
     pcapabvparser::getFnNames(tree.get(), functionNames );
 
@@ -169,6 +170,11 @@ std::atomic<uint64_t> messages_processed;
             packetInfo=find_iter->second;
 
         }
+        //packetInfo->evaluatePacket(pcap_pkthdr* hdr, uint8_t* data, PacketOffsets_t* offsets, ASTPtr& tree);
+        PacketOffsets_t *offset = opt.value()->protoOffset.get();
+        pcap_pkthdr *hdr = opt.value()->pktHeader.get();
+        uint8_t *pkt = opt.value()->pkt.get();
+        packetInfo->evaluatePacket(hdr, pkt, offset, tree.get());
         //transfer raw packet to network stream object (to queue for saves)
         packetInfo->transferPacket(std::move(opt.value()->pktHeader), std::move(opt.value()->pkt), std::move(opt.value()->protoOffset));
 
@@ -178,7 +184,7 @@ std::atomic<uint64_t> messages_processed;
 
 
         //remove unneeded unique_ptr's
-        opt.value()->protoOffset.reset(); // offset only needed for packet processing
+        //opt.value()->protoOffset.reset(); // offset only needed for packet processing
 
 //        std::cout << "thread " << threadId << " received packet #"  << messages_processed << " size " << opt.value()->key->size() << std::endl;
     }
