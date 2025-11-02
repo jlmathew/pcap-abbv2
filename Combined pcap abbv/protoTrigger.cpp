@@ -46,7 +46,6 @@ const uint16_t protoTrigger::protoNum() const
     return m_protocolNumber;
 }
 
-void protoTrigger::protoRegister(lambdaMap &protoMap) {}
 
 // TCP protocol trigger
 protoTcpTrigger::protoTcpTrigger()
@@ -95,11 +94,14 @@ protoTcpTrigger& protoTcpTrigger::operator=(const protoTcpTrigger& rhs)
 //auto lambdaFunc = [&g](const std::string& name) {g.greet(name);};
 
 void protoTcpTrigger::createNameLambda() {}
-void protoTcpTrigger::protoRegister(lambdaMap &m_functEval)
+
+void protoRegister(const std::vector<std::string> &fnNames)
 {
     static int test1=0;
-
-    m_functEval.emplace("TCP.Test",  make_lambda_holder([&](const std::vector<int>& params)
+    long a=0;
+std::cout << "protoTCP Register called " << std::endl;
+    //m_functEval.emplace("TCP.Test",  make_lambda_holder([&](const std::vector<int>& params)
+    registerUserFunction("TCP.Test",  ([&](const std::vector<int>& params)
     {
 
         a--;
@@ -107,6 +109,7 @@ void protoTcpTrigger::protoRegister(lambdaMap &m_functEval)
         return test1++;
     })
                        );
+                       std::cout << "done new lambda" << std::endl;
 }
 
 /*
@@ -174,9 +177,10 @@ PacketStreamEval::~PacketStreamEval()
 void PacketStreamEval::configurationFiles(std::string configFile) {}
 
 //probably faster to have them register directly, but we need to 'prefill' in all functions to return '0', in case its not supported
-void PacketStreamEval::registerProtoFnNames(std::vector<std::string> protoFnNames)
+void PacketStreamEval::registerProtoFnNames(const std::vector<std::string> &protoFnNames)
 {
     std::string protocol, functName;
+    std::cout << "protFnNames size is " << protoFnNames.size() << " " << protoFnNames[0] << std::endl;
     for(auto protoName : protoFnNames )
     {
         size_t pos = protoName.find('.');
@@ -198,8 +202,15 @@ void PacketStreamEval::registerProtoFnNames(std::vector<std::string> protoFnName
             if (protocol == "TCP")
             {
                 iter =m_protocolsUsed.insert({"TCP", new protoTcpTrigger()});
-                iter->second->protoRegister(m_protoLambdaMap);
-std::cout << "registered function TCP." << std::endl;
+                //iter->second->protoRegister(protoFnNames,pcapabvparser::userFunctions ); //protoLambdaMap
+                 pcapabvparser::registerUserFunction(protoName, [protoName](const std::vector<int> &args)
+        {
+            std::cerr << protoName << " is a reimplemented function" << std::endl;
+            return 1;
+
+        });
+                //iter->second->protoRegister(protoFnNames); //protoLambdaMap
+                std::cout << "registered function TCP." << std::endl;
             }
             /* else  if (protocol == "IPv4")
             {
@@ -223,12 +234,12 @@ std::cout << "registered function TCP." << std::endl;
                  iter = m_protocolsUsed.insert({"ICMP", new protoIcmpTrigger()});
 
              }*/
-            else   //unsupported
-            {
-                std::cerr << "Unsuported protocol in packet stream evaluation:" << protocol << std::endl;
-                exit(1);
 
-            }
+        }
+        else   //unsupported, should return 0
+        {
+            std::cerr << "Unsupported protocol in packet stream evaluation:" << protocol << std::endl;
+            //exit(1);
 
         }
 
@@ -240,16 +251,40 @@ std::cout << "registered function TCP." << std::endl;
         //LambdaHolder lamContainer(lambda);
     }
 
+
 }
+
+//COMMENT:
+//We may need to
+//remember last key
+//if key is new, clear (lamba returning 0) existing functions based upon functNames
+//    re-register all functions in all proctols, into PacketStreamEval
+//Call tree->eval(), mark packet as tagged for interest or save
+//add to queue to save (pop any older pre-packets)
+//
+// To do, add queue lengths for same or different packets-gress (same-gress or different-gress) (extra option as well), and first SYN direction
+//
+//
 //void PacketStreamEval::evaluatePacket(pcap_pkthdr *hdr, uint8_t[] &data, PacketOffsets_t *offsets, ASTPtr &tree) {}
-void PacketStreamEval::evaluatePacket(pcap_pkthdr* hdr, uint8_t* data, PacketOffsets_t* offsets, ASTNode * tree) {}
-auto PacketStreamEval::returnProtoFunction(std::string protoFnName) {}
+void PacketStreamEval::evaluatePacket(pcap_pkthdr* hdr, uint8_t* data, PacketOffsets_t* offsets, ASTNode * tree)
+{
+
+//only needed if we are not on the same packet stream and new
+    //registerProtoFnNames(protoFnNames); -- looks incorrect
+
+//protoRegister(lambdaMap &m_functEval);
+    //protoRegister(m_protoLambdaMap &m_functEval);
+    int result = tree->eval();
+    std::cout << "eval=" << result << std::endl;
+
+}
+//auto PacketStreamEval::returnProtoFunction(std::string protoFnName) {}
 void PacketStreamEval::setSavePacketTrigger(bool) {}
 void PacketStreamEval::setSaveStreamTrigger(bool) {}
 void PacketStreamEval::flushPacketsToDisk() {}
 void PacketStreamEval::transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, std::unique_ptr<PacketOffsets_t>  &&pktOffsets)
 {
-
+std::cout << "packet buffer now size " << m_packetHistory.size() << std::endl;
 //This should evaluate and save
 
 //save packet

@@ -7,6 +7,8 @@
 #include <memory>
 #include <map>
 
+#include "protoTrigger.h"
+
 namespace pcapabvparser {
 
 
@@ -93,8 +95,9 @@ private:
 };
 
 // Register user function
-void registerUserFunction(const std::string& name, std::function<int(const std::vector<int>&)> func);
 
+void registerUserFunction(const std::string& name, std::function<int(const std::vector<int>&)> func);
+//void registerUserFunction(const std::string& name, ICallable *> func);
 } // namespace pcapabvparser
 
 #endif // __pcap_abbv_parser_h__

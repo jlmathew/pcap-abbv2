@@ -20,26 +20,35 @@
 //#include "parser.h"
 namespace pcapabvparser
 {
+class ASTNode;
+//extern thread_local std::map<std::string, std::function<int(const std::vector<int>&)>> userFunctions;
 //only test/placeholder
 struct PacketOffsets_t;
 using packetLayerHelper_t = PacketOffsets_t; //was 1 for debug
 
-using Func = std::function<int(std::vector<int>)>;
+using Func = std::function<int(const std::vector<int>&)>;
+
+using protoLambdaMap = std::unordered_map< const std::string &, Func> ;
+//std::unordered_map<std::string, std::function<int(const std::vector<int>&)>>
+
 //Function lambda holder
 template<typename Func>
-struct LambdaHolder {
+struct LambdaHolder
+{
     Func func;
     // Constructor
     LambdaHolder(Func lamFunct) : func(lamFunct) {}
     // Optional: call operator for convenience
-    int operator()(const std::vector<int>& v) const {
+    int operator()(const std::vector<int>& v) const
+    {
         return func(v);
     }
 };
 using LambdaHolderType = LambdaHolder<int(*)(const std::vector<int>&)>;
 
 // 1. Define a base class for callable objects.
-class ICallable {
+class ICallable
+{
 public:
     virtual ~ICallable() = default;
     virtual void call(const std::vector<int>& v) = 0;
@@ -47,10 +56,12 @@ public:
 
 // 2. Define a template to wrap a specific lambda type.
 template<typename Func>
-class LambdaWrapper : public ICallable {
+class LambdaWrapper : public ICallable
+{
 public:
     explicit LambdaWrapper(Func func) : func_(std::move(func)) {}
-    void call(const std::vector<int>& v) override {
+    void call(const std::vector<int>& v) override
+    {
         func_(v);
     }
 private:
@@ -60,12 +71,13 @@ private:
 // 3. Define a helper function to create and return a raw pointer.
 // Ownership is transferred to the caller.
 template<typename Func>
-ICallable* make_lambda_holder(Func&& func) {
+ICallable* make_lambda_holder(Func&& func)
+{
     return new LambdaWrapper<Func>(std::forward<Func>(func));
 }
 
-using lambdaMap = std::unordered_multimap< std::string , ICallable*>  ;
-
+//using lambdaMap = std::unordered_multimap< std::string , ICallable*>  ;
+//using m_protoLambdaMap = std::unordered_multimap< std::string, ICallable*>  ;
 struct VectorHash
 {
     std::size_t operator()(const std::vector<uint8_t>& vec) const
@@ -82,38 +94,40 @@ struct VectorHash
 class protoTrigger
 {
 protected:
-std::string m_myId;
-uint16_t m_protocolNumber;
+    std::string m_myId;
+    uint16_t m_protocolNumber;
+    //protoLambdaMap m_protoMap;
 public:
-   protoTrigger();
-   void setHelper(packetLayerHelper_t *helper);
-   void setRawPacket(packetLayerHelper_t *packetLayerHelper);
-   virtual ~protoTrigger();
-   protoTrigger(const protoTrigger &other);
-   protoTrigger& operator=(const protoTrigger & other);
-   void protoRegister(lambdaMap &protoMap);
-   //LambdaHolderType protoRequest(std::string &functName);
-   //ICallable* protoTrigger::protoRequest(std::string &functName);
+    protoTrigger();
+    void setHelper(packetLayerHelper_t *helper);
+    void setRawPacket(packetLayerHelper_t *packetLayerHelper);
+    virtual ~protoTrigger();
+    protoTrigger(const protoTrigger &other);
+    protoTrigger& operator=(const protoTrigger & other);
+    //void protoRegister(const std::vector<std::string> &fnNames, protoLambdaMap &protoMap);
+    //LambdaHolderType protoRequest(std::string &functName);
+    //ICallable* protoTrigger::protoRequest(std::string &functName);
 
-   //std::unordered_map<std::string, LambdaHolderType> m_functEval;
-   packetLayerHelper_t *m_packetLayerHelper;
-   public:
-virtual const std::string id() const;
-virtual const uint16_t protoNum() const;
+    //std::unordered_map<std::string, LambdaHolderType> m_functEval;
+    packetLayerHelper_t *m_packetLayerHelper;
+public:
+    virtual const std::string id() const;
+    virtual const uint16_t protoNum() const;
 };
 
 class protoTcpTrigger: public protoTrigger
 {
 
-    public:
-        protoTcpTrigger();
-           protoTcpTrigger(packetLayerHelper_t *helper);
-        virtual ~protoTcpTrigger();
-        protoTcpTrigger(const protoTcpTrigger& other);
-        protoTcpTrigger& operator=(const protoTcpTrigger& other);
-        LambdaHolderType protoRequest(std::string &functName);
-        void protoRegister(lambdaMap &m_functEval);
-    protected:
+public:
+    protoTcpTrigger();
+    protoTcpTrigger(packetLayerHelper_t *helper);
+    virtual ~protoTcpTrigger();
+    protoTcpTrigger(const protoTcpTrigger& other);
+    protoTcpTrigger& operator=(const protoTcpTrigger& other);
+    LambdaHolderType protoRequest(std::string &functName);
+    //void protoRegister(protoLambdaMap &m_functEval);
+    void protoRegister(const std::vector<std::string> &fnNames);
+protected:
     void createNameLambda();
     int a;
 
@@ -201,68 +215,70 @@ class TriggerGen
 // Function that accepts the struct and calls the lambda
 
 //this class handles packet stream information at a per protocol issue
-class PacketStreamEval {
+class PacketStreamEval
+{
 public:
-PacketStreamEval();
-virtual ~PacketStreamEval();
+    PacketStreamEval();
+    virtual ~PacketStreamEval();
 
-void configurationFiles(std::string configFile);
+    void configurationFiles(std::string configFile);
 //cache names and get lambda functions
-void registerProtoFnNames(std::vector<std::string> protoFnNames);
-auto returnProtoFunction(std::string protoFnName);
-void setSavePacketTrigger(bool);
-void setSaveStreamTrigger(bool);
-void flushPacketsToDisk();
-void transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, std::unique_ptr<PacketOffsets_t > &&pktOffsets);
-void evaluatePacket(pcap_pkthdr *hdr, uint8_t *data, PacketOffsets_t *offsets, ASTNode *tree);
+    void registerProtoFnNames(const std::vector<std::string> &protoFnNamesww);
+
+//    void returnProtoFunction(const std::string &protoFnName, std::unordered_map< std::string, Func> &protoMap) ;
+    void setSavePacketTrigger(bool);
+    void setSaveStreamTrigger(bool);
+    void flushPacketsToDisk();
+    void transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, std::unique_ptr<PacketOffsets_t > &&pktOffsets);
+    void evaluatePacket(pcap_pkthdr *hdr, uint8_t *data, PacketOffsets_t *offsets, ASTNode *tree);
 private:
 //cached mapping of protocol to lambda
- //std::unordered_map<std::string, LambdaHolderType> m_protoLambdaMap;
- std::unordered_multimap< std::string , ICallable*> m_protoLambdaMap; //m_lambda_map;
-
+//std::unordered_map<std::string, LambdaHolderType> m_protoLambdaMap;
+    //std::unordered_map< std::string, ICallable*> m_protoLambdaMap;  //m_lambda_map;
+std::unordered_map< std::string, Func> m_protoLambdaMap;
 //save unique protocols based upon filters (tcp, icmp, ipv6, etc)
-std::unordered_multimap< std::string , protoTrigger *> m_protocolsUsed;
+    std::unordered_multimap< std::string, protoTrigger *> m_protocolsUsed;
 
 //packet history (for before intested tagged packets), also post packets after tagging
 //dequeue to popping off the front unsaved older packets
 
-std::deque<std::pair<std::unique_ptr<pcap_pkthdr>, std::unique_ptr<uint8_t[]>>> m_packetHistory;
+    std::deque<std::pair<std::unique_ptr<pcap_pkthdr>, std::unique_ptr<uint8_t[]>>> m_packetHistory;
 
 //history of packets to save and/or write to disk
-uint32_t m_prePacketHistoryMax;
-uint32_t m_postPacketHistoryMax;
+    uint32_t m_prePacketHistoryMax;
+    uint32_t m_postPacketHistoryMax;
 
 //0 for not saving packets, otherwise start with postPacketHistoryMax and decrement
 //packetHistory should be zero size when doing post tagged packet saving
 //should be post tagged packet if flushing
-uint32_t m_currentPostPacketHistoryCnt;
+    uint32_t m_currentPostPacketHistoryCnt;
 
 //how many packets to save before disk flush
-uint32_t m_flushPacketMax;
+    uint32_t m_flushPacketMax;
 //how much memory from packets to save before disk flush
-uint32_t m_flushPacketMemMax;
+    uint32_t m_flushPacketMemMax;
 //how many bytes in pkt size (data) currently
-uint32_t m_currentPacketMem;
+    uint32_t m_currentPacketMem;
 
 //if we see a 2nd tag packet, and not done, we need to flush existing packets, add the difference from post packets (plus one for additional tag packet), after flushing existing buffer
-uint32_t totalPacketsToFlush;
+    uint32_t totalPacketsToFlush;
 
 //File pointer to write, if open
-FILE *m_filePtr;
+    FILE *m_filePtr;
 //unique fileName;
-std::string m_fileName;
+    std::string m_fileName;
 
 //save packets in packetHistory then flush, or flush to disk directly when tagged packets found
-bool m_cachePackets;
+    bool m_cachePackets;
 
 //do we keep the pcap file (in case we capture packets of interest, but not packet streams to save)
-bool m_savePcapStream;
+    bool m_savePcapStream;
 
 //did we already open a file
-bool m_fileopen;
+    bool m_fileopen;
 
 //trigger packet seen, so we save max pre-trigger-post packet counts
-bool triggerPacketSeen;
+    bool triggerPacketSeen;
 
 
 

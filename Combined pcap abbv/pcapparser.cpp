@@ -8,12 +8,14 @@
 
 namespace pcapabvparser
 {
-
+thread_local std::unordered_map<std::string, std::function<int(const std::vector<int>&)>> userFunctions;
 // Thread-local user function registry
-thread_local std::map<std::string, std::function<int(const std::vector<int>&)>> userFunctions;
-
+//thread_local std::map<std::string, std::function<int(const std::vector<int>&)>> userFunctions;
+//thread_local std::map<std::string, ICallable *> userFunctions
+//thread_local std::map<std::string, Func> userFunctions;
 //get function Names during Parsing
-
+//void registerUserFunction(const std::string& name, ICallable *> func);
+void registerUserFunction(const std::string& name, Func  func);
 
 void getFnNames(const ASTNode* node, std::vector<std::string>& names) {
     if (const auto* func = dynamic_cast<const FuncCallNode*>(node)) {
@@ -232,7 +234,7 @@ ASTPtr FnParser::parse()
 // Register function
 void registerUserFunction(const std::string& name, std::function<int(const std::vector<int>&)> func)
 {
-    userFunctions[name] = std::move(func);
+    userFunctions[name] = func; //std::move(func);
 }
 
 } // namespace pcapabvparser

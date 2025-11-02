@@ -33,7 +33,7 @@ extern struct globalOptions_t globalOptions;
 struct PacketOffsets_t; // forward declaration
 
 //std::vector<std::string> functionNames;
-
+class ASTNode;
 struct pktBufferData_t
 {
     std::unique_ptr<pcap_pkthdr> pktHeader;
@@ -104,33 +104,34 @@ void consumer_pcap_process_thread(
     size_t id,
     std::shared_ptr<NonBlockingCircularBuffer<std::unique_ptr<pktBufferData_t>, Size> > buffer)
 {
-std::atomic<uint64_t> messages_processed;
+    std::atomic<uint64_t> messages_processed;
 //std::cout << "calling thread " << id << " and buffer pointer:" << std::hex << buffer<< std::endl;
 
 //create local thread evaluator, only doing packets of interest for now
     pcapabvparser::FnParser parser(globalOptions.pcapPacketOfInterestFilter);
     auto tree = parser.parse();
-     size_t threadId=id;
+    size_t threadId=id;
     std::vector<std::string> functionNames;
     pcapabvparser::getFnNames(tree.get(), functionNames );
-
+//std::cout << "number of function names:" << functionNames.size() << std::endl;
 
     std::unordered_multimap<std::vector<uint8_t>, PacketStreamEval *, VectorHash > packetStreamMap;
     //for timing out streams, each protocol has a timeout
     using Clock = std::chrono::steady_clock;
     using TimePoint = Clock::time_point;
-    std::multimap<TimePoint, std::vector<uint8_t>> expiryMap;
+    std::map<TimePoint, std::vector<uint8_t>> expiryMap;
 
-
+//m_protoLambdaMap;
     int cnt=0;
     for(const auto &name : functionNames)
     {
         cnt++;
-        std::cout << "function:" << name << std::endl;
+        std::cout << "function name:" << name << std::endl;
         //quick registeration to avoid crash on eval(), the value should be replaced
-        pcapabvparser::registerUserFunction(name, [name](std::vector<int> args)
+        //pcapabvparser::registerUserFunction(name, make_lambda_holder([name](std::vector<int> args)
+        pcapabvparser::registerUserFunction(name, [name](const std::vector<int> &args)
         {
-            std::cerr << name << " is NOT defined" << std::endl;
+            std::cerr << name << " is a dummy function" << std::endl;
             return 0;
 
         });
@@ -157,24 +158,31 @@ std::atomic<uint64_t> messages_processed;
         //create new object if new
         if (find_iter== packetStreamMap.end())
         {
-        std::cout << "new packet stream" << std::endl;
-        print_key(*(opt.value()->key));
+            std::cout << "new packet stream::" << std::endl;
+            print_key(*(opt.value()->key));
             //create new Object
             packetInfo=new PacketStreamEval();
             //register function names
+
             packetInfo->registerProtoFnNames(functionNames);
         }
         else
         {
             //get packet steram object
             packetInfo=find_iter->second;
+            std::cout << "packet stream found " << std::endl;
 
         }
         //packetInfo->evaluatePacket(pcap_pkthdr* hdr, uint8_t* data, PacketOffsets_t* offsets, ASTPtr& tree);
         PacketOffsets_t *offset = opt.value()->protoOffset.get();
         pcap_pkthdr *hdr = opt.value()->pktHeader.get();
         uint8_t *pkt = opt.value()->pkt.get();
-        packetInfo->evaluatePacket(hdr, pkt, offset, tree.get());
+        ASTNode *astn = tree.get();
+
+        packetInfo->evaluatePacket(hdr, pkt, offset, astn);
+
+
+
         //transfer raw packet to network stream object (to queue for saves)
         packetInfo->transferPacket(std::move(opt.value()->pktHeader), std::move(opt.value()->pkt), std::move(opt.value()->protoOffset));
 

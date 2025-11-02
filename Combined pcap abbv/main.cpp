@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
 
     //setup non block buffers and threaded child packet processing application
         const size_t BUFFER_SIZE = 256;
-    const size_t numConsumers=4;
+    const size_t numConsumers=1;
 
 
     std::vector< std::shared_ptr< NonBlockingCircularBuffer<std::unique_ptr<pktBufferData_t>, BUFFER_SIZE > > > nb_buffers;
@@ -303,6 +303,8 @@ int main(int argc, char *argv[])
         //queue packet into fifo per thread
         VectorHash hasher;
         size_t target = hasher(*key) % numConsumers;
+        pcapabvparser::print_simplekey(*key);
+        std::cout << "hashing "  << " hash of " << target << std::endl;
 //print_key(*key);
         //push informationation onto correct queue
         auto queueData = std::make_unique<pktBufferData_t>(std::move(headerCopy),std::move(packetCopy),std::move(offsets), std::move(key),target); //target should not be needed

@@ -204,7 +204,20 @@ std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_
 }
 
 //void print_key(std::unique_ptr<std::vector<uint8_t>> key)
-void print_key(std::vector<uint8_t> key)
+void print_simplekey(const std::vector<uint8_t> &key){
+    //std::ostringstream oss;  //parameter should be ostringstream, not cout (allow parameter to be passed) to allow strings as well
+
+    std::cout << "PRINTKEYSIMPLE:";
+    std::cout << "Size:" << key.size() << std::endl;
+    for (unsigned int i=0; i<key.size(); i++)
+    {
+        std::cout <<std::hex << std::uppercase
+                  << std::setw(2) << std::setfill('0') << static_cast<int>(key[i]); //key[i];
+    }
+    std::cout << std::endl;
+}
+
+void print_key(const std::vector<uint8_t> &key)
 {
 //std::vector<uint8_t> *val=key.get();
     std::ostringstream oss;  //parameter should be ostringstream, not cout (allow parameter to be passed) to allow strings as well
