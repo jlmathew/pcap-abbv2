@@ -1,7 +1,12 @@
 #include "protoTrigger.h"
 
+
+
 namespace pcapabvparser
 {
+
+extern thread_local std::map<std::string, std::function<int(const std::vector<int>&)>> userFunctions;
+
 //Base class protoTrigger
 protoTrigger::protoTrigger() //illegal to call
 {
@@ -35,6 +40,7 @@ void protoTrigger::setRawPacket(packetLayerHelper_t *packetLayerHelper)
     m_packetLayerHelper = packetLayerHelper;
 }
 
+void protoTrigger::protoRegister(const std::vector<std::string> &fnNames) {}
 
 const std::string protoTrigger::id() const
 {
@@ -48,7 +54,7 @@ const uint16_t protoTrigger::protoNum() const
 
 
 // TCP protocol trigger
-protoTcpTrigger::protoTcpTrigger()
+protoTcpTrigger::protoTcpTrigger():b(0)
 {
     createNameLambda();
 
@@ -93,23 +99,46 @@ protoTcpTrigger& protoTcpTrigger::operator=(const protoTcpTrigger& rhs)
 }*/
 //auto lambdaFunc = [&g](const std::string& name) {g.greet(name);};
 
-void protoTcpTrigger::createNameLambda() {}
-
-void protoRegister(const std::vector<std::string> &fnNames)
+void protoTcpTrigger::createNameLambda()
 {
+    int a=50; //test
     static int test1=0;
-    long a=0;
-std::cout << "protoTCP Register called " << std::endl;
-    //m_functEval.emplace("TCP.Test",  make_lambda_holder([&](const std::vector<int>& params)
-    registerUserFunction("TCP.Test",  ([&](const std::vector<int>& params)
+
+    m_protoMap["TCP.Test"] = ([a,&test1,this](const std::vector<int>& params) mutable
     {
 
         a--;
-        std::cout << "Tcp.Test called. Counter is now: " << test1 << " and " << a << "\n";
+        b = (++b) % 2;
+        std::cout << "Tcp.Test called. Counter is now: " << test1 << " and " << a << " and " << b << "\n";
         return test1++;
-    })
-                       );
-                       std::cout << "done new lambda" << std::endl;
+    }
+                             );
+}
+
+void protoTcpTrigger::protoRegister(const std::vector<std::string> &fnNames) //string_view to be quicker
+{
+
+    std::cout << "protoTCP Register called " << std::endl;
+    for(auto name : fnNames)
+    {
+        auto itr= m_protoMap.find(name);
+        if (itr != m_protoMap.end())
+        {
+            pcapabvparser::userFunctions[name] = itr->second;
+        }
+    }
+
+    /*
+        //m_functEval.emplace("TCP.Test",  make_lambda_holder([&](const std::vector<int>& params)
+        registerUserFunction("TCP.Test",  ([&](const std::vector<int>& params)
+        {
+
+            a--;
+            std::cout << "Tcp.Test called. Counter is now: " << test1 << " and " << a << "\n";
+            return test1++;
+        })
+                           ); */
+    std::cout << "done new lambda" << std::endl;
 }
 
 /*
@@ -202,13 +231,13 @@ void PacketStreamEval::registerProtoFnNames(const std::vector<std::string> &prot
             if (protocol == "TCP")
             {
                 iter =m_protocolsUsed.insert({"TCP", new protoTcpTrigger()});
-                //iter->second->protoRegister(protoFnNames,pcapabvparser::userFunctions ); //protoLambdaMap
-                 pcapabvparser::registerUserFunction(protoName, [protoName](const std::vector<int> &args)
-        {
-            std::cerr << protoName << " is a reimplemented function" << std::endl;
-            return 1;
+                iter->second->protoRegister(protoFnNames); //protoLambdaMap
+                /*pcapabvparser::registerUserFunction(protoName, [protoName](const std::vector<int> &args)
+                {
+                    std::cerr << protoName << " is a reimplemented function" << std::endl;
+                    return 1;
 
-        });
+                });*/
                 //iter->second->protoRegister(protoFnNames); //protoLambdaMap
                 std::cout << "registered function TCP." << std::endl;
             }
@@ -284,7 +313,7 @@ void PacketStreamEval::setSaveStreamTrigger(bool) {}
 void PacketStreamEval::flushPacketsToDisk() {}
 void PacketStreamEval::transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, std::unique_ptr<PacketOffsets_t>  &&pktOffsets)
 {
-std::cout << "packet buffer now size " << m_packetHistory.size() << std::endl;
+    std::cout << "packet buffer now size " << m_packetHistory.size() << std::endl;
 //This should evaluate and save
 
 //save packet

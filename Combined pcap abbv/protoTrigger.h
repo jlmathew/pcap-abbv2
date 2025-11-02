@@ -21,14 +21,14 @@
 namespace pcapabvparser
 {
 class ASTNode;
-//extern thread_local std::map<std::string, std::function<int(const std::vector<int>&)>> userFunctions;
+
 //only test/placeholder
 struct PacketOffsets_t;
 using packetLayerHelper_t = PacketOffsets_t; //was 1 for debug
 
 using Func = std::function<int(const std::vector<int>&)>;
 
-using protoLambdaMap = std::unordered_map< const std::string &, Func> ;
+using protoLambdaMap = std::unordered_map< std::string, Func> ;
 //std::unordered_map<std::string, std::function<int(const std::vector<int>&)>>
 
 //Function lambda holder
@@ -96,7 +96,7 @@ class protoTrigger
 protected:
     std::string m_myId;
     uint16_t m_protocolNumber;
-    //protoLambdaMap m_protoMap;
+    protoLambdaMap m_protoMap;
 public:
     protoTrigger();
     void setHelper(packetLayerHelper_t *helper);
@@ -104,7 +104,7 @@ public:
     virtual ~protoTrigger();
     protoTrigger(const protoTrigger &other);
     protoTrigger& operator=(const protoTrigger & other);
-    //void protoRegister(const std::vector<std::string> &fnNames, protoLambdaMap &protoMap);
+    virtual void protoRegister(const std::vector<std::string> &fnNames);
     //LambdaHolderType protoRequest(std::string &functName);
     //ICallable* protoTrigger::protoRequest(std::string &functName);
 
@@ -126,10 +126,10 @@ public:
     protoTcpTrigger& operator=(const protoTcpTrigger& other);
     LambdaHolderType protoRequest(std::string &functName);
     //void protoRegister(protoLambdaMap &m_functEval);
-    void protoRegister(const std::vector<std::string> &fnNames);
+    void protoRegister(const std::vector<std::string> &fnNames) override;
 protected:
     void createNameLambda();
-    int a;
+    int b;
 
 
 };
@@ -237,7 +237,7 @@ private:
     //std::unordered_map< std::string, ICallable*> m_protoLambdaMap;  //m_lambda_map;
 std::unordered_map< std::string, Func> m_protoLambdaMap;
 //save unique protocols based upon filters (tcp, icmp, ipv6, etc)
-    std::unordered_multimap< std::string, protoTrigger *> m_protocolsUsed;
+    std::unordered_multimap< std::string, protoTrigger *> m_protocolsUsed; //should be map, not multimap for protocols
 
 //packet history (for before intested tagged packets), also post packets after tagging
 //dequeue to popping off the front unsaved older packets
