@@ -14,6 +14,7 @@
 #include <string>
 #include <numeric>
 #include <deque>
+#include <atomic>
 #include <pcap/pcap.h>
 #include "pcapparser.h"
 

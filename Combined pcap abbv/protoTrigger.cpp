@@ -102,15 +102,17 @@ protoTcpTrigger& protoTcpTrigger::operator=(const protoTcpTrigger& rhs)
 void protoTcpTrigger::createNameLambda()
 {
     int a=50; //test
-    static int test1=0;
+    static std::atomic<int> test1{0};
+
 
     m_protoMap["TCP.Test"] = ([a,&test1,this](const std::vector<int>& params) mutable
+    //m_protoMap["TCP.Test"] = ([&test1,this](const std::vector<int>& params)
     {
 
         a--;
         b = (++b) % 2;
-        std::cout << "Tcp.Test called. Counter is now: " << test1 << " and " << a << " and " << b << "\n";
-        return test1++;
+        std::cout << "Tcp.Test called. Counter is now: " << test1 << " and " <<  " and " << b << "\n";
+        return test1.fetch_add(1);
     }
                              );
 }
@@ -125,7 +127,7 @@ void protoTcpTrigger::protoRegister(const std::vector<std::string> &fnNames) //s
         if (itr != m_protoMap.end())
         {
             pcapabvparser::userFunctions[name] = itr->second;
-        }
+        } // we skip non matches, may be other protocols
     }
 
     /*
