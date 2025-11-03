@@ -98,14 +98,16 @@ protected:
     std::string m_myId;
     uint16_t m_protocolNumber;
     protoLambdaMap m_protoMap;
+
 public:
     protoTrigger();
     void setHelper(packetLayerHelper_t *helper);
     void setRawPacket(packetLayerHelper_t *packetLayerHelper);
-    virtual ~protoTrigger();
-    protoTrigger(const protoTrigger &other);
-    protoTrigger& operator=(const protoTrigger & other);
-    virtual void protoRegister(const std::vector<std::string> &fnNames);
+    virtual ~protoTrigger()=default;
+    protoTrigger(const protoTrigger &other)=default;
+    protoTrigger& operator=(const protoTrigger & other)=default;
+    virtual void protoRegister(const std::vector<std::string> &fnNames)=0;
+    virtual     void createNameLambda()=0;
     //LambdaHolderType protoRequest(std::string &functName);
     //ICallable* protoTrigger::protoRequest(std::string &functName);
 
@@ -116,19 +118,23 @@ public:
     virtual const uint16_t protoNum() const;
 };
 
-class protoTcpTrigger: public protoTrigger
+//class protoTcpTrigger: public protoTrigger
+//class protoTcpTrigger: public virtual protoTrigger, std::enable_shared_from_this<protoTcpTrigger>
+class protoTcpTrigger : public std::enable_shared_from_this<protoTcpTrigger>, public virtual protoTrigger
+
 {
 
 public:
     protoTcpTrigger();
+    static std::shared_ptr<protoTcpTrigger> create(const std::vector<std::string>& fnNames);
     protoTcpTrigger(packetLayerHelper_t *helper);
     virtual ~protoTcpTrigger();
     protoTcpTrigger(const protoTcpTrigger& other);
     protoTcpTrigger& operator=(const protoTcpTrigger& other);
-    LambdaHolderType protoRequest(std::string &functName);
+    //virtual LambdaHolderType protoRequest(std::string &functName);
     //void protoRegister(protoLambdaMap &m_functEval);
     void protoRegister(const std::vector<std::string> &fnNames) override;
-protected:
+    private:
     void createNameLambda();
     int b;
 
@@ -229,16 +235,19 @@ public:
 //    void returnProtoFunction(const std::string &protoFnName, std::unordered_map< std::string, Func> &protoMap) ;
     void setSavePacketTrigger(bool);
     void setSaveStreamTrigger(bool);
+    void setId(const std::string &id);
     void flushPacketsToDisk();
     void transferPacket(std::unique_ptr<pcap_pkthdr> &&header, std::unique_ptr<uint8_t[]> &&data, std::unique_ptr<PacketOffsets_t > &&pktOffsets);
     void evaluatePacket(pcap_pkthdr *hdr, uint8_t *data, PacketOffsets_t *offsets, ASTNode *tree);
 private:
+std::string m_id;
 //cached mapping of protocol to lambda
 //std::unordered_map<std::string, LambdaHolderType> m_protoLambdaMap;
     //std::unordered_map< std::string, ICallable*> m_protoLambdaMap;  //m_lambda_map;
 std::unordered_map< std::string, Func> m_protoLambdaMap;
 //save unique protocols based upon filters (tcp, icmp, ipv6, etc)
-    std::unordered_multimap< std::string, protoTrigger *> m_protocolsUsed; //should be map, not multimap for protocols
+    //std::unordered_multimap< std::string, protoTrigger *> m_protocolsUsed; //should be map, not multimap for protocols
+std::unordered_map<std::string, std::shared_ptr<protoTrigger>> m_protocolsUsed;
 
 //packet history (for before intested tagged packets), also post packets after tagging
 //dequeue to popping off the front unsaved older packets

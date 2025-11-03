@@ -290,6 +290,8 @@ int main(int argc, char *argv[])
         auto packetCopy = std::unique_ptr<uint8_t[]>(new uint8_t[pktHeader->caplen]);
         std::memcpy(packetCopy.get(), packetData, pktHeader->caplen);
 
+counter++;
+std::cout << "Number of packets seen:" << std::dec << counter << std::endl;
 
 
         //auto offsets = std::make_unique<pktBufferData_t>();
@@ -303,8 +305,8 @@ int main(int argc, char *argv[])
         //queue packet into fifo per thread
         VectorHash hasher;
         size_t target = hasher(*key) % numConsumers;
-        pcapabvparser::print_simplekey(*key);
-        std::cout << "hashing "  << " hash of " << target << std::endl;
+        //pcapabvparser::print_simplekey(*key);
+        //std::cout << "hashing "  << " hash of " << target << std::endl;
 //print_key(*key);
         //push informationation onto correct queue
         auto queueData = std::make_unique<pktBufferData_t>(std::move(headerCopy),std::move(packetCopy),std::move(offsets), std::move(key),target); //target should not be needed

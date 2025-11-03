@@ -65,6 +65,6 @@ std::pair <std::unique_ptr<std::vector<uint8_t>>, std::unique_ptr<PacketOffsets_
 //void print_key(std::unique_ptr<std::vector<uint8_t>> key);
 void print_key(const std::vector<uint8_t> &key);
 
-void print_simplekey(const std::vector<uint8_t> &key);
+std::string print_simplekey(const std::vector<uint8_t> &key);
 } //end namespace
 #endif // __PCAPKEY_H__

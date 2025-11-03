@@ -158,11 +158,13 @@ void consumer_pcap_process_thread(
         //create new object if new
         if (find_iter== packetStreamMap.end())
         {
-            std::cout << "new packet stream::" << std::endl;
-            print_key(*(opt.value()->key));
+            //std::cout << "new packet stream::" << std::endl;
+            //print_key(*(opt.value()->key));
             //create new Object
             packetInfo=new PacketStreamEval();
+            packetInfo->setId(print_simplekey(*(opt.value()->key)));
             //register function names
+            packetStreamMap.insert({*(opt.value()->key),packetInfo});
 
             packetInfo->registerProtoFnNames(functionNames);
         }

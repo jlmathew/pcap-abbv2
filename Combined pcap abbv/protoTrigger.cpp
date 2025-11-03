@@ -12,7 +12,7 @@ protoTrigger::protoTrigger() //illegal to call
 {
 
 }
-
+/*
 protoTrigger::~protoTrigger()
 {
     //dtor
@@ -27,7 +27,7 @@ protoTrigger& protoTrigger::operator=(const protoTrigger& rhs)
 {
     return *this;
 }
-
+*/
 /*
 LambdaHolderType protoTrigger::protoRequest(std::string &functName)
 {
@@ -40,7 +40,7 @@ void protoTrigger::setRawPacket(packetLayerHelper_t *packetLayerHelper)
     m_packetLayerHelper = packetLayerHelper;
 }
 
-void protoTrigger::protoRegister(const std::vector<std::string> &fnNames) {}
+//void protoTrigger::protoRegister(const std::vector<std::string> &fnNames) {}
 
 const std::string protoTrigger::id() const
 {
@@ -56,13 +56,49 @@ const uint16_t protoTrigger::protoNum() const
 // TCP protocol trigger
 protoTcpTrigger::protoTcpTrigger():b(0)
 {
-    createNameLambda();
+    std::cout << "CREATING lambda" << std::endl;
+//createNameLambda();
 
 }
+std::shared_ptr<protoTcpTrigger> protoTcpTrigger::create(const std::vector<std::string>& fnNames)
+{
+    //auto ptr = std::shared_ptr<protoTcpTrigger>(new protoTcpTrigger());
+    auto ptr = std::make_shared<protoTcpTrigger>();
+std::cout << "make_shared ptr = " << ptr.get() << std::endl;
 
+    ptr->createNameLambda();
+    ptr->protoRegister(fnNames);
+    return ptr;
+}
+
+void protoTcpTrigger::createNameLambda()
+{
+    std::weak_ptr<protoTcpTrigger> self = shared_from_this(); //
+    //test
+    try
+    {
+        auto self = shared_from_this();
+        std::cout << "shared_from_this() succeeded" << std::endl;
+    }
+    catch (const std::bad_weak_ptr& e)
+    {
+        std::cerr << "shared_from_this() failed: " << e.what() << std::endl;
+    }
+
+m_protoMap["TCP.Test"] = [](const std::vector<int>&) { return 42; };
+
+    m_protoMap["TCP.Test2"] = [a = 50, self](const std::vector<int>&) mutable
+    {
+        if (auto spt = self.lock())
+        {
+            return --a;
+        }
+        return -1;
+    };
+}
 protoTcpTrigger::~protoTcpTrigger()
 {
-
+    std::cout << "protoTcpTrigger eval deleted" << std::endl;
 }
 
 protoTcpTrigger::protoTcpTrigger(const protoTcpTrigger& other)
@@ -98,24 +134,42 @@ protoTcpTrigger& protoTcpTrigger::operator=(const protoTcpTrigger& rhs)
     }
 }*/
 //auto lambdaFunc = [&g](const std::string& name) {g.greet(name);};
-
+/*
 void protoTcpTrigger::createNameLambda()
 {
     int a=50; //test
-    static std::atomic<int> test1{0};
+    //static std::atomic<int> test1{0};
+
+    std::cout << "calling creatNameLambda" << std::endl;
+    std::weak_ptr<protoTcpTrigger> self = shared_from_this();
 
 
-    m_protoMap["TCP.Test"] = ([a,&test1,this](const std::vector<int>& params) mutable
-    //m_protoMap["TCP.Test"] = ([&test1,this](const std::vector<int>& params)
+    m_protoMap["TCP.Test"] = [a, self](const std::vector<int>& params) mutable -> int
+    {
+        if (auto spt = self.lock())
+        {
+            a--;
+            // use spt->... if needed
+            return a;
+        }
+        else
+        {
+            std::cerr << "protoTcpTrigger no longer alive!" << std::endl;
+            return 0;
+        }
+    };
+    //m_protoMap["TCP.Test"] = ([a,this](const std::vector<int>& params) mutable
+    //m_protoMap["TCP.Test"] = ([&test1](const std::vector<int>& params)
     {
 
         a--;
-        b = (++b) % 2;
-        std::cout << "Tcp.Test called. Counter is now: " << test1 << " and " <<  " and " << b << "\n";
-        return test1.fetch_add(1);
+        //b = (++b) % 2;
+        std::cout << "Tcp.Test called. Counter is now: " << a << "\n"; //<< " and " <<  " and " << b << "\n";
+        return a; //test1.fetch_add(1);
     }
-                             );
-}
+      };
+//}
+*/
 
 void protoTcpTrigger::protoRegister(const std::vector<std::string> &fnNames) //string_view to be quicker
 {
@@ -124,10 +178,19 @@ void protoTcpTrigger::protoRegister(const std::vector<std::string> &fnNames) //s
     for(auto name : fnNames)
     {
         auto itr= m_protoMap.find(name);
-        if (itr != m_protoMap.end())
+        if (itr != m_protoMap.end() && itr->second)
         {
+            std::cout << "Registering function: '" << name << "' length=" << name.length() << std::endl;
+            std::vector<int> a;
+            std::cout << "return vlaue is " << itr->second(a);
+            std::cout << "Lambda address: " << reinterpret_cast<void*>(&itr->second) << std::endl;
+
             pcapabvparser::userFunctions[name] = itr->second;
         } // we skip non matches, may be other protocols
+        else
+        {
+            std::cout << "DANGER, itr second is null" << std::endl;
+        }
     }
 
     /*
@@ -197,21 +260,26 @@ return nullptr;
 
 PacketStreamEval::PacketStreamEval()
 {
+   static std::atomic<uint64_t> pktCnt{0};
 
+   pktCnt++;
+   std::cout << pktCnt << "packet streams" << std::endl;
 }
 
 PacketStreamEval::~PacketStreamEval()
 {
 //temporary default, flush buffers
-
+    std::cout << "Packetstream eval deleted" << std::endl;
 }
 void PacketStreamEval::configurationFiles(std::string configFile) {}
-
+   void PacketStreamEval::setId(const std::string &id) { m_id=id;
+   std::cout << "Packet ID:" << m_id << std::endl;
+   }
 //probably faster to have them register directly, but we need to 'prefill' in all functions to return '0', in case its not supported
 void PacketStreamEval::registerProtoFnNames(const std::vector<std::string> &protoFnNames)
 {
     std::string protocol, functName;
-    std::cout << "protFnNames size is " << protoFnNames.size() << " " << protoFnNames[0] << std::endl;
+    std::cout << "protFnNames size is " << protoFnNames.size() << std::endl;
     for(auto protoName : protoFnNames )
     {
         size_t pos = protoName.find('.');
@@ -228,12 +296,31 @@ void PacketStreamEval::registerProtoFnNames(const std::vector<std::string> &prot
         }
         auto iter=m_protocolsUsed.find(protocol);
 
+
         if (iter == m_protocolsUsed.end())
         {
             if (protocol == "TCP")
             {
-                iter =m_protocolsUsed.insert({"TCP", new protoTcpTrigger()});
-                iter->second->protoRegister(protoFnNames); //protoLambdaMap
+                //iter =m_protocolsUsed.insert({"TCP", new protoTcpTrigger()});
+                /*auto trigger = std::make_shared<protoTcpTrigger>();
+
+                m_protocolsUsed["TCP"] = trigger;
+                trigger->createNameLambda();
+                trigger->protoRegister(protoFnNames);*/
+
+                auto trigger = std::make_shared<protoTcpTrigger>();
+
+// Call createNameLambda BEFORE storing in m_protocolsUsed
+//trigger->createNameLambda();
+
+// Then store it as base type
+//m_protocolsUsed["TCP"] = std::static_pointer_cast<protoTrigger>(trigger);
+                m_protocolsUsed["TCP"] = protoTcpTrigger::create(protoFnNames);
+
+                trigger->protoRegister(protoFnNames);
+                //iter->second->protoRegister(protoFnNames); //protoLambdaMap
+
+
                 /*pcapabvparser::registerUserFunction(protoName, [protoName](const std::vector<int> &args)
                 {
                     std::cerr << protoName << " is a reimplemented function" << std::endl;
